@@ -64,3 +64,22 @@
 - [x] 새 환경에서 `pnpm install` 후 `pnpm dev` 즉시 실행 가능
 - [x] 린트/빌드/테스트 명령이 최소 1회 성공
 - [x] FR-01(Auth) 구현을 바로 시작할 수 있는 공통 유틸/구조 준비 완료
+
+### J. Supabase DB 필수 세팅
+
+- [x] `doc/task/fr-00-supabase-schema.sql` 실행으로 테이블 생성
+- [x] Storage bucket 생성: `audio`(public), `pdf`(public)
+- [x] 단일 사용자 seed 데이터 삽입 (`users` 1건)
+- [x] seed 비밀번호 bcrypt 해시 생성 후 `password_hash`에 저장
+- [x] 로그인 API 호출로 `users` 조회/비밀번호 검증 정상 동작 확인
+
+#### seed 참고 명령
+
+```bash
+node -e "console.log(require('bcryptjs').hashSync('your-password', 10))"
+```
+
+```sql
+insert into users (password_hash, description, role)
+values ('<bcrypt-hash>', null, 'user');
+```

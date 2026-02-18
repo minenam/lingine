@@ -2,9 +2,13 @@ import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 
 import { AuthError } from '@/lib/errors';
-import { env } from '@/lib/env';
 
 export const AUTH_COOKIE_NAME = 'lingine_token';
+export const AUTH_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
+
+function getJwtSecret(): string | null {
+  return process.env.JWT_SECRET ?? null;
+}
 
 type JwtPayload = {
   userId: string;
@@ -13,10 +17,31 @@ type JwtPayload = {
 };
 
 export function signAuthToken(userId: string): string {
-  return jwt.sign({ userId }, env.JWT_SECRET, {
+  const secret = getJwtSecret();
+
+  if (!secret) {
+    throw new AuthError('JWT secret is not configured');
+  }
+
+  return jwt.sign({ userId }, secret, {
     algorithm: 'HS256',
     expiresIn: '7d',
   });
+}
+
+export function verifyAuthToken(token: string): { userId: string } | null {
+  const secret = getJwtSecret();
+
+  if (!secret) {
+    return null;
+  }
+
+  try {
+    const payload = jwt.verify(token, secret) as JwtPayload;
+    return { userId: payload.userId };
+  } catch {
+    return null;
+  }
 }
 
 export async function getAuthUser(): Promise<{ userId: string }> {
@@ -27,10 +52,11 @@ export async function getAuthUser(): Promise<{ userId: string }> {
     throw new AuthError('Missing auth token');
   }
 
-  try {
-    const payload = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
-    return { userId: payload.userId };
-  } catch {
+  const authUser = verifyAuthToken(token);
+
+  if (!authUser) {
     throw new AuthError('Invalid or expired token');
   }
+
+  return authUser;
 }
