@@ -60,7 +60,7 @@
 - 캘린더: 기본 주간 뷰 (1주), 오늘 날짜 강조 (검정 원형 배경 + 흰색 텍스트)
 - 월간 정확도 카드: 퍼센트 숫자 + 원형 프로그레스 링 + 피드백 라벨
 - 학습 시작 카드: 오늘 학습 미완료 시 "TO DO" + "Start Learning", 완료 시 "DONE" + 점수 표시
-- Bottom Nav: Home (활성) / Review / Setting
+- Bottom Nav: Home (활성) / Review / Settings
 
 **피드백 라벨 매핑**:
 | 점수 범위 | 라벨 |
@@ -181,8 +181,9 @@
 
 **처리 — Direct Input**:
 1. 정답 텍스트를 `dictation_sessions.answer_key`에 저장
-2. 채점 API 호출: `POST /api/score`
-   - Request: `{ userInput: string, answerKey: string }`
+2. 채점 API 호출: `POST /api/dictation-sessions/:id/score`
+   - Path Param: `id` (채점 대상 session ID)
+   - Request Body: 없음 (세션에 저장된 `user_input`, `answer_key` 사용)
    - 채점 로직: 하단 섹션 5 "채점 알고리즘 명세" 참조
    - Response: `{ totalScore, sentenceScores[], feedback }`
 3. 채점 결과를 `dictation_sessions`에 저장 (total_score, status: `completed`)
