@@ -13,12 +13,13 @@ const createSessionBodySchema = z.object({
 });
 
 const listSessionQuerySchema = z.object({
-  status: z.enum(['in_progress', 'completed']).default('completed'),
+  status: z.enum(['in_progress', 'completed']).optional(),
   difficulty: z.enum(['easy', 'med', 'hard']).optional(),
   maxScore: z.coerce.number().int().min(0).max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   keyword: z.string().trim().max(255).optional(),
+  dayRecordId: z.string().uuid().optional(),
 });
 
 type DayRecordRow = {
@@ -194,12 +195,13 @@ export async function GET(request: Request) {
     const authUser = await getAuthUser();
     const url = new URL(request.url);
     const parsedQuery = listSessionQuerySchema.safeParse({
-      status: url.searchParams.get('status') ?? 'completed',
+      status: url.searchParams.get('status') ?? undefined,
       difficulty: url.searchParams.get('difficulty') ?? undefined,
       maxScore: url.searchParams.get('maxScore') ?? undefined,
       page: url.searchParams.get('page') ?? '1',
       limit: url.searchParams.get('limit') ?? '20',
       keyword: url.searchParams.get('keyword') ?? undefined,
+      dayRecordId: url.searchParams.get('dayRecordId') ?? undefined,
     });
 
     if (!parsedQuery.success) {
@@ -210,15 +212,22 @@ export async function GET(request: Request) {
       );
     }
 
-    const { status, difficulty, maxScore, page, limit } = parsedQuery.data;
+    const { status, difficulty, maxScore, page, limit, dayRecordId } =
+      parsedQuery.data;
     const keyword = normalizeKeyword(parsedQuery.data.keyword ?? null);
 
     const supabase = getSupabaseAdmin();
 
-    const { data: dayRecords, error: dayRecordError } = await supabase
+    let dayRecordsQuery = supabase
       .from('day_records')
       .select('id')
       .eq('user_id', authUser.userId);
+
+    if (dayRecordId) {
+      dayRecordsQuery = dayRecordsQuery.eq('id', dayRecordId);
+    }
+
+    const { data: dayRecords, error: dayRecordError } = await dayRecordsQuery;
 
     if (dayRecordError) {
       throw new AppError(
