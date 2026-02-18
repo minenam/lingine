@@ -278,6 +278,8 @@
 |--------|------|-------------|-------------|
 | id | uuid | PK, default gen_random_uuid() | 사용자 ID |
 | password_hash | text | NOT NULL | bcrypt 해싱된 비밀번호 |
+| description | varchar(255) | nullable | 사용자 메모 |
+| role | varchar(50) | NOT NULL, default 'user' | 사용자 역할 |
 | created_at | timestamptz | default now() | 생성일 |
 | updated_at | timestamptz | default now() | 수정일 |
 
@@ -337,66 +339,11 @@ users (1) → (N) day_records (1) → (N) audio_sources
 
 ---
 
-## 5. 채점 알고리즘 명세
-
-### 5-1. 전처리 (Normalization)
-
-입력 텍스트(사용자 입력 & 정답) 각각에 동일 전처리 적용:
-
-1. 줄바꿈(`\n`)으로 문장 분리
-2. 각 문장에 대해:
-   - 소문자 변환 (`toLowerCase`)
-   - 구두점 제거 (`.`, `,`, `!`, `?`, `'`, `"`, `:`, `;` 등)
-   - 특수문자 필터링 — 영숫자(a-z, 0-9)와 공백만 유지
-   - 연속 공백을 단일 공백으로 정규화, 앞뒤 공백 제거 (`trim`)
-3. 공백 기준으로 단어 배열 생성
-
-### 5-2. 문장 매칭
-
-- 정답 문장 수 기준으로 1:1 매칭 (순서대로)
-- 사용자 입력 문장 수 < 정답 문장 수: 부족분은 빈 문자열(`""`)로 채움 → 해당 문장 0점
-- 사용자 입력 문장 수 > 정답 문장 수: 초과분 무시
-
-### 5-3. 단어 비교 (LCS 기반)
-
-각 문장 쌍에 대해 LCS(Longest Common Subsequence) 알고리즘 적용:
-
-- 단위: 단어 (공백 분리 토큰)
-- 순서 보존: 사용자 입력에서 정답 단어가 올바른 순서로 등장하는 최대 개수
-- 문장 점수 = `(LCS 매칭 단어 수 / 정답 단어 수) × 100` (반올림, 정수 %)
-
-### 5-4. 총점 계산
-
-- 전체 문장 점수의 단순 평균 (반올림, 정수 %)
-
-### 5-5. 피드백 매핑
-
-| 점수 구간 | 메시지 | 이모지 | 부가 텍스트 |
-|-----------|--------|--------|-------------|
-| 90~100% | Excellent! | 🎉 | Almost perfect! |
-| 70~89% | Great Job! | 👏 | You missed a few nuances. |
-| 50~69% | Keep Going! | 💪 | Review the tricky parts. |
-| 0~49% | Try Again | 📝 | Listen carefully and retry. |
-
-### 5-6. 엣지 케이스
-
-| 케이스 | 처리 |
-|--------|------|
-| 사용자 입력 비어있음 | 총점 0%, 피드백 "Try Again" |
-| 정답 비어있음 | 채점 불가, 에러 반환 |
-| 정답 단어 0개 (공백만) | 해당 문장 100% (비교 대상 없음) |
-
-### 5-7. API 인터페이스
-
-```
-POST /api/score
-Request:  { userInput: string, answerKey: string }
-Response: { totalScore: number, sentenceScores: { sentence: number, score: number }[], feedback: { message: string, emoji: string, sub: string } }
-```
+> API 명세 및 채점 알고리즘은 [TRD](./trd.md) 참조
 
 ---
 
-## 6. 제약사항 & MVP 제외 범위
+## 5. 제약사항 & MVP 제외 범위
 
 ### MVP 제외
 - Vocabulary / Reading / Writing 모듈 (UI 카드만 표시, 기능 없음)
