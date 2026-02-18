@@ -23,7 +23,17 @@ export function parseDateOnly(dateOnly: string): Date | null {
     return null;
   }
 
-  return new Date(year, month - 1, day);
+  const parsed = new Date(year, month - 1, day);
+
+  if (
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() !== month - 1 ||
+    parsed.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return parsed;
 }
 
 export function isDateOnlyString(value: string | undefined): value is string {

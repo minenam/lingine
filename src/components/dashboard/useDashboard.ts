@@ -84,6 +84,8 @@ export function useDashboard(initialData?: InitialData) {
       return;
     }
 
+    let isMounted = true;
+
     const timer = setTimeout(() => {
       const run = async () => {
         setIsLoading(true);
@@ -103,6 +105,10 @@ export function useDashboard(initialData?: InitialData) {
           const data = (await response.json()) as DayRecordsResponse;
           const records = data.dayRecords ?? [];
 
+          if (!isMounted) {
+            return;
+          }
+
           setDayRecords(records);
           setMonthlyAverageScore(
             typeof data.monthlyAverageScore === 'number'
@@ -111,12 +117,18 @@ export function useDashboard(initialData?: InitialData) {
           );
           setErrorMessage('');
         } catch (error) {
+          if (!isMounted) {
+            return;
+          }
+
           console.error('Failed to load dashboard data:', error);
           setDayRecords([]);
           setMonthlyAverageScore(null);
           setErrorMessage('대시보드 데이터를 불러오지 못했습니다.');
         } finally {
-          setIsLoading(false);
+          if (isMounted) {
+            setIsLoading(false);
+          }
         }
       };
 
@@ -124,6 +136,7 @@ export function useDashboard(initialData?: InitialData) {
     }, 300);
 
     return () => {
+      isMounted = false;
       clearTimeout(timer);
     };
   }, [monthEnd, monthStart]);

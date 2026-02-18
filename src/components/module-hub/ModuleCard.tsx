@@ -19,6 +19,7 @@ export default function ModuleCard(props: ModuleCardProps) {
       <button
         type="button"
         onClick={props.onClick}
+        aria-label="Go to listening module"
         style={{
           borderRadius: '18px',
           border: '1px solid #e6e6e6',
@@ -80,7 +81,7 @@ export default function ModuleCard(props: ModuleCardProps) {
     <button
       type="button"
       disabled={props.disabled}
-      aria-disabled
+      aria-disabled={props.disabled}
       style={{
         borderRadius: '18px',
         border: '1px solid #ececec',
