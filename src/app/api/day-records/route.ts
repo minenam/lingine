@@ -1,0 +1,93 @@
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+
+import { getAuthUser } from '@/lib/auth';
+import { AppError, ERROR_CODES, toErrorResponse } from '@/lib/errors';
+import { getSupabaseAdmin } from '@/lib/supabase';
+
+const dayRecordsQuerySchema = z
+  .object({
+    from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  })
+  .refine((value) => value.from <= value.to, {
+    message: 'from must be less than or equal to to',
+  });
+
+type DayRecordRow = {
+  id: string;
+  date: string;
+  average_score: number | null;
+  status: 'pending' | 'completed';
+};
+
+function calculateMonthlyAverage(dayRecords: DayRecordRow[]) {
+  const scoredRecords = dayRecords.filter(
+    (dayRecord) => dayRecord.average_score !== null,
+  );
+
+  if (scoredRecords.length === 0) {
+    return null;
+  }
+
+  const total = scoredRecords.reduce(
+    (sum, dayRecord) => sum + (dayRecord.average_score ?? 0),
+    0,
+  );
+
+  return Math.round(total / scoredRecords.length);
+}
+
+export async function GET(request: Request) {
+  try {
+    const authUser = await getAuthUser();
+    const url = new URL(request.url);
+
+    const parsedQuery = dayRecordsQuerySchema.safeParse({
+      from: url.searchParams.get('from'),
+      to: url.searchParams.get('to'),
+    });
+
+    if (!parsedQuery.success) {
+      throw new AppError(
+        ERROR_CODES.VALIDATION_ERROR,
+        'Invalid day-records query',
+        400,
+      );
+    }
+
+    const supabase = getSupabaseAdmin();
+
+    const { data: dayRecords, error } = await supabase
+      .from('day_records')
+      .select('id, date, average_score, status')
+      .eq('user_id', authUser.userId)
+      .gte('date', parsedQuery.data.from)
+      .lte('date', parsedQuery.data.to)
+      .order('date', { ascending: true })
+      .returns<DayRecordRow[]>();
+
+    if (error) {
+      throw new AppError(
+        ERROR_CODES.INTERNAL_ERROR,
+        'Failed to load day records',
+        500,
+      );
+    }
+
+    const records = dayRecords ?? [];
+
+    return NextResponse.json({
+      dayRecords: records.map((dayRecord) => ({
+        id: dayRecord.id,
+        date: dayRecord.date,
+        averageScore: dayRecord.average_score,
+        status: dayRecord.status,
+      })),
+      monthlyAverageScore: calculateMonthlyAverage(records),
+    });
+  } catch (error) {
+    const { error: apiError, status } = toErrorResponse(error);
+    return NextResponse.json({ error: apiError }, { status });
+  }
+}

@@ -1,11 +1,10 @@
 import { getAuthUser } from '@/lib/auth';
+import DashboardClient from '@/components/dashboard/DashboardClient';
 import { redirect } from 'next/navigation';
 
 export default async function DashboardPage() {
-  let authUser: { userId: string };
-
   try {
-    authUser = await getAuthUser();
+    await getAuthUser();
   } catch {
     redirect('/login');
   }
@@ -17,8 +16,7 @@ export default async function DashboardPage() {
         padding: '24px',
       }}
     >
-      <h1 style={{ margin: 0 }}>Hello, Learner</h1>
-      <p style={{ color: '#666' }}>Authenticated user: {authUser.userId}</p>
+      <DashboardClient />
     </main>
   );
 }
