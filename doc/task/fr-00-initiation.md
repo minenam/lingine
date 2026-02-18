@@ -67,11 +67,11 @@
 
 ### J. Supabase DB 필수 세팅
 
-- [ ] `doc/task/fr-00-supabase-schema.sql` 실행으로 테이블 생성
-- [ ] Storage bucket 생성: `audio`(public), `pdf`(public)
-- [ ] 단일 사용자 seed 데이터 삽입 (`users` 1건)
-- [ ] seed 비밀번호 bcrypt 해시 생성 후 `password_hash`에 저장
-- [ ] 로그인 API 호출로 `users` 조회/비밀번호 검증 정상 동작 확인
+- [x] `doc/task/fr-00-supabase-schema.sql` 실행으로 테이블 생성
+- [x] Storage bucket 생성: `audio`(public), `pdf`(public)
+- [x] 단일 사용자 seed 데이터 삽입 (`users` 1건)
+- [x] seed 비밀번호 bcrypt 해시 생성 후 `password_hash`에 저장
+- [x] 로그인 API 호출로 `users` 조회/비밀번호 검증 정상 동작 확인
 
 #### seed 참고 명령
 
