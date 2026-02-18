@@ -174,11 +174,12 @@ export default function DashboardClient() {
           });
 
           const response = await fetch(`/api/day-records?${query.toString()}`);
-          const data = (await response.json()) as DayRecordsResponse;
 
           if (!response.ok) {
             throw new Error('Failed to load dashboard data');
           }
+
+          const data = (await response.json()) as DayRecordsResponse;
 
           setDayRecords(data.dayRecords ?? []);
 
@@ -201,7 +202,8 @@ export default function DashboardClient() {
           }
 
           setErrorMessage('');
-        } catch {
+        } catch (e) {
+          console.error('Failed to load dashboard data:', e);
           setDayRecords([]);
           setMonthlyAverageScore(null);
           setErrorMessage('대시보드 데이터를 불러오지 못했습니다.');
@@ -232,7 +234,6 @@ export default function DashboardClient() {
 
   const handleDateSelect = (date: Date) => {
     const dateString = toDateOnlyString(date);
-    setFocusDate(date);
     router.push(toModuleHubPath(dateString));
   };
 
