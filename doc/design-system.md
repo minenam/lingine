@@ -164,6 +164,15 @@ Module Hub에서 Listening 선택 시 진입하는 소스 등록 화면.
   - Selected: Black bg + White text
   - Unselected: 연한 회색 배경
 
+### 오디오 플레이어 (Sticky)
+
+- 단일 파일: 기본 오디오 플레이어 (재생/일시정지, 탐색바, 재생 속도)
+- **다중 파일**: 파일 선택 탭 UI (파일명 축약 표시, 선택된 파일 하단 border 강조) + 해당 파일 플레이어
+  - 탭 높이: 36, 가로 스크롤 가능
+  - Selected 탭: 하단 2px Dark Navy border + 텍스트 진하게
+  - Unselected 탭: 텍스트 #888
+- YouTube: iframe 임베드
+
 ### Dictation 입력
 
 - White 카드, Radius 18, Padding 20

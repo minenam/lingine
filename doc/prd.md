@@ -336,6 +336,8 @@ Dictation 하단에 이어지는 영역.
 ### 데이터 구조 (간소화)
 
 - **User**: (Single) ID, PW
-- **DayRecord**: Date, Status(Done/Fail), AverageScore
-- **Sentence**: AudioSource(URL/File), UserInput, AnswerKey, Difficulty, Score
-- **AudioFile**: FileName, FileType(MP3/WAV/M4A), FileURL, UploadedAt
+- **DayRecord**: Date, Status(pending/completed), AverageScore
+- **AudioSource**: Type(file/youtube), FileURL, FileName
+- **DictationSession**: Difficulty, UserInput, AnswerKey, AnswerPdfPath, TotalScore, Status(in_progress/completed)
+- **Sentence**: UserText, AnswerText, Score
+- 세션 1개에 오디오 소스 N개 연결 가능 (다중 파일 지원)

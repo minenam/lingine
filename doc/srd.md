@@ -82,8 +82,9 @@
 - 선택된 날짜 (Dashboard에서 전달)
 
 **처리**:
-1. 해당 날짜의 `day_records` + 관련 `dictation_sessions` 조회
-2. Listening 모듈 상태 결정:
+1. 해당 날짜의 `day_records` 조회 — **없으면 자동 생성 (upsert)**
+2. 관련 `dictation_sessions` 조회
+3. Listening 모듈 상태 결정:
    - 세션 없음: "Not Started"
    - 세션 있고 미채점: "In Progress"
    - 채점 완료: "Completed (N%)" (점수 표시)
@@ -96,6 +97,10 @@
 
 **인터랙션**:
 - Listening 카드 클릭 → Listening Setup
+
+**day_records 자동 생성 규칙**:
+- Module Hub 진입 시 해당 날짜의 day_record가 없으면 `POST /api/day-records` (upsert) 호출
+- 초기 상태: `status: 'pending'`, `average_score: null`
 
 ---
 
@@ -110,11 +115,17 @@
 2. 파일 크기 검증 (최대 50MB per file)
 3. Supabase Storage에 업로드 (`audio/{userId}/{date}/{filename}`)
 4. `audio_sources` 테이블에 레코드 생성 (type: `file`, storage_path, file_name, file_type)
+5. Storage 접근: **Public URL** 사용 (bucket을 public으로 설정)
 
 **처리 — YouTube**:
-1. URL 형식 검증 (정규식: `youtube.com/watch?v=` 또는 `youtu.be/`)
+1. URL 형식 검증 — 허용 패턴:
+   - `youtube.com/watch?v=`
+   - `youtu.be/`
+   - `youtube.com/embed/`
+   - `youtube.com/shorts/`
+   - 정규식: `/^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/`
 2. `audio_sources` 테이블에 레코드 생성 (type: `youtube`, url)
-3. YouTube iframe embed용 video ID 추출
+3. YouTube iframe embed용 video ID 추출 (11자리)
 
 **출력**:
 - 초기 상태: 소스 선택 카드 2개 (Upload Audio File / YouTube Link)
@@ -140,12 +151,14 @@
    - 파일: Supabase Storage URL로 `<audio>` 태그 재생
    - YouTube: iframe embed 재생 (YouTube IFrame API)
 3. 자동 저장: 텍스트 입력 변경 시 debounce 3초 후 `dictation_sessions.user_input` 업데이트
+   - **실패 시 재시도**: 네트워크 실패 시 3초 간격으로 최대 3회 조용히 재시도, 3회 모두 실패 시 다음 debounce에서 재시도
 4. 난이도 변경 시 `dictation_sessions.difficulty` 업데이트
 
 **출력**:
 - 헤더: `<` 뒤로 가기 + "Full Dictation" + 난이도 Pill 버튼
 - 오디오 플레이어: Sticky 위치 (스크롤 시에도 접근 가능)
   - 파일: 기본 오디오 플레이어 (재생/일시정지, 탐색바, 재생 속도)
+  - 다중 파일: **파일별 개별 재생** — 파일 리스트에서 선택하면 해당 파일 재생 (프론트에서 현재 선택 파일 관리)
   - YouTube: iframe 임베드
 - 텍스트 입력 영역: White 카드, 큰 textarea, placeholder "Type what you hear..."
 - 하단: 정답 등록 & 채점 영역 (FR-06)
@@ -178,7 +191,8 @@
 **처리 — PDF Upload**:
 1. PDF 파일을 Supabase Storage에 업로드 (`pdf/{userId}/{date}/{filename}`)
 2. `dictation_sessions.answer_pdf_path`에 경로 저장
-3. PDF에서 텍스트 추출 후 Direct Input과 동일한 채점 프로세스 진행
+3. **PDF는 뷰어로만 제공** — 텍스트 자동 추출/채점 없음
+4. 채점하려면 사용자가 PDF를 보면서 Direct Input 탭에 정답을 직접 입력해야 함
 
 **출력**:
 - 탭 전환 UI: "Direct Input" / "PDF Upload" (선택 탭 하단 border 강조)
@@ -192,6 +206,7 @@
 
 **채점 결과 저장 후**:
 - `day_records` 업데이트: 해당 날짜의 모든 세션 평균 점수를 `average_score`에 반영
+- **day_records.status 전이**: 세션 하나라도 채점 완료(`completed`) 시 day_record도 `completed`로 전환
 - 완료 후 재채점 가능 (정답 수정 → 재채점)
 
 ---
@@ -208,6 +223,7 @@
    - Incorrect: `total_score < 70`
    - Hard / Med / Easy: `difficulty` 필터
 3. 최신순 정렬 (created_at DESC)
+4. **offset 기반 페이지네이션**: `page` (기본 1), `limit` (기본 20)
 
 **출력**:
 - 헤더: "Review Notes"
@@ -241,7 +257,53 @@
 
 ---
 
-## 3. 비기능 요구사항
+## 3. 공통 기술 규칙
+
+### 환경 변수
+
+| 변수명 | 용도 |
+|--------|------|
+| `JWT_SECRET` | JWT 서명 키 (HS256) |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 익명 키 (클라이언트용) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase 서비스 역할 키 (서버 전용) |
+
+### 인증 방식
+
+- **Route-level Helper 패턴**: `lib/auth.ts`에 `getAuthUser()` 함수 구현
+- Node.js Runtime에서 `jsonwebtoken` 라이브러리로 JWT 검증
+- 각 API route handler에서 `getAuthUser()` 호출하여 인증
+- 반환값: `{ userId: string }`
+- 인증 실패 시 `AuthError` throw → route에서 401 응답
+
+### 에러 코드 체계
+
+| 코드 | HTTP | 설명 |
+|------|------|------|
+| `UNAUTHORIZED` | 401 | JWT 없음 또는 만료 |
+| `INVALID_PASSWORD` | 401 | 비밀번호 불일치 |
+| `EMPTY_PASSWORD` | 400 | 비밀번호 미입력 |
+| `NOT_FOUND` | 404 | 리소스 없음 |
+| `VALIDATION_ERROR` | 400 | 입력값 유효성 실패 |
+| `FILE_TOO_LARGE` | 413 | 파일 크기 초과 (오디오 50MB, PDF 10MB) |
+| `INVALID_FILE_TYPE` | 400 | 허용되지 않은 파일 형식 |
+| `INVALID_URL` | 400 | YouTube URL 형식 오류 |
+| `SCORING_ERROR` | 422 | 채점 불가 (정답 비어있음 등) |
+| `INTERNAL_ERROR` | 500 | 서버 내부 오류 |
+
+에러 응답 형식:
+```json
+{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable message"
+  }
+}
+```
+
+---
+
+## 4. 비기능 요구사항
 
 ### NFR-01 성능
 - API 응답 시간: 500ms 이내 (채점 API 포함)
@@ -252,7 +314,7 @@
 ### NFR-02 보안
 - 비밀번호: bcrypt 해싱 (salt rounds: 10)
 - JWT: httpOnly cookie, 만료 7일, HS256 서명
-- API 라우트: JWT 검증 미들웨어 적용
+- API 라우트: Route-level `getAuthUser()` helper로 JWT 검증
 - 파일 업로드: MIME type 검증 + 확장자 검증
 
 ### NFR-03 PWA
@@ -271,7 +333,7 @@
 
 ---
 
-## 4. 데이터 모델
+## 5. 데이터 모델
 
 ### users
 | Column | Type | Constraints | Description |
@@ -310,7 +372,6 @@
 |--------|------|-------------|-------------|
 | id | uuid | PK, default gen_random_uuid() | 세션 ID |
 | day_record_id | uuid | FK → day_records.id, NOT NULL | 소속 day_record |
-| audio_source_id | uuid | FK → audio_sources.id, NOT NULL | 사용한 오디오 소스 |
 | difficulty | text | NOT NULL, default 'med' | 'easy' \| 'med' \| 'hard' |
 | user_input | text | nullable | 사용자 받아쓰기 입력 |
 | answer_key | text | nullable | 정답 텍스트 |
@@ -319,6 +380,16 @@
 | status | text | NOT NULL, default 'in_progress' | 'in_progress' \| 'completed' |
 | created_at | timestamptz | default now() | 생성일 |
 | updated_at | timestamptz | default now() | 수정일 |
+
+### session_audio_sources (중간 테이블)
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | uuid | PK, default gen_random_uuid() | ID |
+| session_id | uuid | FK → dictation_sessions.id, NOT NULL | 세션 ID |
+| audio_source_id | uuid | FK → audio_sources.id, NOT NULL | 오디오 소스 ID |
+| created_at | timestamptz | default now() | 생성일 |
+
+- UNIQUE(session_id, audio_source_id) 복합 유니크 제약
 
 ### sentences
 | Column | Type | Constraints | Description |
@@ -334,7 +405,9 @@
 ### 테이블 관계
 ```
 users (1) → (N) day_records (1) → (N) audio_sources
-                                  (1) → (N) dictation_sessions (1) → (N) sentences
+                             (1) → (N) dictation_sessions (1) → (N) sentences
+                                            (N) ↔ (N) audio_sources
+                                          [session_audio_sources 중간 테이블]
 ```
 
 ---
@@ -343,7 +416,7 @@ users (1) → (N) day_records (1) → (N) audio_sources
 
 ---
 
-## 5. 제약사항 & MVP 제외 범위
+## 6. 제약사항 & MVP 제외 범위
 
 ### MVP 제외
 - Vocabulary / Reading / Writing 모듈 (UI 카드만 표시, 기능 없음)
