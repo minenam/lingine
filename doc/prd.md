@@ -74,6 +74,7 @@
 - 비밀번호 인증 (자물쇠 아이콘 + 마스킹)
 - PWA 설치 유도: 하단 "App to Home Screen" 텍스트
 - 세션 유지 기능 (Auto Login)
+- 인증 구현: bcrypt 해싱 저장, JWT 세션 (7일 만료), Supabase Auth 미사용 (추후 확장 시 도입)
 
 ---
 
@@ -100,7 +101,7 @@
 |  | Keep your streak alive! 🔥    |    |
 |  +-------------------------------+    |
 |                                       |
-| [🏠 Home]  [📖 Review]  [⚙️ Setting]|
+| [🏠 Home]  [📖 Review]  [⚙️ Settings]|
 +---------------------------------------+
 ```
 
@@ -141,7 +142,7 @@
 |  |    Locked                     |    |
 |  +-------------------------------+    |
 |                                       |
-| [🏠 Home]  [📖 Review]  [⚙️ Setting]|
+| [🏠 Home]  [📖 Review]  [⚙️ Settings]|
 +---------------------------------------+
 ```
 
@@ -186,6 +187,7 @@ Module Hub에서 Listening 선택 시 진입하는 별도 화면.
 - **YouTube Link 선택 시**:
   - URL 입력 필드 확장: placeholder "https://youtu.be/..."
   - "Load Video" 버튼
+  - YouTube iframe 임베드 재생 (오디오 추출 없음)
 - 지원 형식: MP3, WAV, M4A
 
 ---
@@ -212,10 +214,10 @@ Module Hub에서 Listening 선택 시 진입하는 별도 화면.
 
 **기능:**
 
-- **난이도 선택**: 상단 우측 Pill 버튼 (Easy / Med / Hard)
+- **난이도 선택**: 상단 우측 Pill 버튼 (Easy / Med / Hard) — 난이도는 태그/분류 목적이며, 학습 방식(전체 받아쓰기)은 동일
 - **Dictation 입력**: 큰 White 카드 Textarea, 자동 저장 (Auto Save)
 - 모바일 키보드 최적화
-- 문장별 개별 입력 (SENTENCE 1, SENTENCE 2, ...)
+- 단일 textarea 입력 (줄바꿈으로 문장 구분)
 
 ---
 
@@ -229,7 +231,7 @@ Dictation 하단에 이어지는 영역.
 |                                       |
 |  +-------------------------------+    |
 |  | Excellent! 🎉          ◯96%  |    |
-|  | You missed a few nuances.    |    |
+|  | Almost perfect!              |    |
 |  |                               |    |
 |  |  Sentence 1           92%    |    |
 |  |  Sentence 2          100%    |    |
@@ -251,7 +253,7 @@ Dictation 하단에 이어지는 영역.
 - **완료 버튼**: 초록색 "Complete & Save"
 - 채점 전 완료 버튼 비활성화
 - 완료 후 재채점 가능
-- 채점 로직: 서버 사이드(Text Diff Algorithm) 혹은 클라이언트 비교 로직
+- 채점 로직: 서버 사이드 API (추후 AI 채점 확장 고려) — 단순 단어 매칭 (대소문자/구두점 무시, 정규화 후 비교), LCS 기반 순서 보존 매칭
 
 ---
 
@@ -278,7 +280,7 @@ Dictation 하단에 이어지는 영역.
 |  | 40%  "It's usually crowded..." |   |
 |  +-------------------------------+    |
 |                                       |
-| [🏠 Home]  [📖 Review]  [⚙️ Setting]|
+| [🏠 Home]  [📖 Review]  [⚙️ Settings]|
 +---------------------------------------+
 ```
 
@@ -286,7 +288,7 @@ Dictation 하단에 이어지는 영역.
 
 - **필터**: 5개 Pill 버튼 — All / Incorrect / Hard / Med / Easy
 - **카드 정보**: 날짜 + 정확도 badge + 모듈 태그 + 난이도 태그 + 문장 미리보기
-- **정확도 색상**: Orange (60~75%), Red (40% 이하)
+- **정확도 색상**: Green (70% 이상), Orange (50~69%), Red (50% 미만)
 - 리스트 클릭 시 해당 문장의 오디오 구간과 입력/정답 확인
 - MVP는 단순 리스트 구조
 
@@ -320,6 +322,11 @@ Dictation 하단에 이어지는 영역.
 - **Manifest**: 앱 아이콘, 이름, 테마 색상 지정. `display: standalone` 설정 필수
 - **Offline**: 오프라인 시에도 기본 UI(Skeleton)는 로드되도록 Service Worker 캐싱 전략 수립
 
+### 데이터 저장소
+
+- **Supabase** (PostgreSQL + Storage)
+- 오디오/PDF 파일은 Supabase Storage에 저장
+
 ### 확장성 고려 (React Native 대비)
 
 - **API First**: 비즈니스 로직(채점, 데이터 저장, 불러오기)은 모두 REST API로 분리
@@ -329,6 +336,8 @@ Dictation 하단에 이어지는 영역.
 ### 데이터 구조 (간소화)
 
 - **User**: (Single) ID, PW
-- **DayRecord**: Date, Status(Done/Fail), AverageScore
-- **Sentence**: AudioSource(URL/File), UserInput, AnswerKey, Difficulty, Score
-- **AudioFile**: FileName, FileType(MP3/WAV/M4A), FileURL, UploadedAt
+- **DayRecord**: Date, Status(pending/completed), AverageScore
+- **AudioSource**: Type(file/youtube), FileURL, FileName
+- **DictationSession**: Difficulty, UserInput, AnswerKey, AnswerPdfPath, TotalScore, Status(in_progress/completed)
+- **Sentence**: UserText, AnswerText, Score
+- 세션 1개에 오디오 소스 N개 연결 가능 (다중 파일 지원)

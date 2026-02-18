@@ -89,7 +89,7 @@
 ### Bottom Nav
 
 - Height 64
-- 3개 탭: Home / Review / Setting
+- 3개 탭: Home / Review / Settings
 - Active 탭: 아이콘 채움 + 텍스트 진하게
 - Inactive: #888
 
@@ -164,6 +164,15 @@ Module Hub에서 Listening 선택 시 진입하는 소스 등록 화면.
   - Selected: Black bg + White text
   - Unselected: 연한 회색 배경
 
+### 오디오 플레이어 (Sticky)
+
+- 단일 파일: 기본 오디오 플레이어 (재생/일시정지, 탐색바, 재생 속도)
+- **다중 파일**: 파일 선택 탭 UI (파일명 축약 표시, 선택된 파일 하단 border 강조) + 해당 파일 플레이어
+  - 탭 높이: 36, 가로 스크롤 가능
+  - Selected 탭: 하단 2px Dark Navy border + 텍스트 진하게
+  - Unselected 탭: 텍스트 #888
+- YouTube: iframe 임베드
+
 ### Dictation 입력
 
 - White 카드, Radius 18, Padding 20
@@ -185,7 +194,7 @@ Module Hub에서 Listening 선택 시 진입하는 소스 등록 화면.
 
 - 초록 계열 테마
 - White 카드, Radius 20, Padding 24, 연한 초록 배경
-- 좌측: "Excellent!" + 파티 이모지 + "You missed a few nuances." 서브텍스트
+- 좌측: "Excellent!" + 파티 이모지 + "Almost perfect!" 서브텍스트
 - 우측: **원형 프로그레스 링** 안에 점수 (96%)
 
 ### 문장별 점수
@@ -221,8 +230,9 @@ Module Hub에서 Listening 선택 시 진입하는 소스 등록 화면.
 - 우측: 모듈 태그 (Listening) + 난이도 태그 (Hard)
 - 하단: 문장 미리보기 ("The subway was very crowded.")
 - 정확도 색상:
-  - 60% 이상: Orange
-  - 40% 이하: Red
+  - 70% 이상: Green
+  - 50~69%: Orange
+  - 50% 미만: Red
 
 ---
 
