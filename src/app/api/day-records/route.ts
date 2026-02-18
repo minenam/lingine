@@ -21,6 +21,10 @@ type DayRecordRow = {
   status: 'pending' | 'completed';
 };
 
+const createDayRecordBodySchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
 function calculateMonthlyAverage(dayRecords: DayRecordRow[]) {
   const scoredRecords = dayRecords.filter(
     (dayRecord) => dayRecord.average_score !== null,
@@ -85,6 +89,102 @@ export async function GET(request: Request) {
         status: dayRecord.status,
       })),
       monthlyAverageScore: calculateMonthlyAverage(records),
+    });
+  } catch (error) {
+    const { error: apiError, status } = toErrorResponse(error);
+    return NextResponse.json({ error: apiError }, { status });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const authUser = await getAuthUser();
+    const body = await request.json();
+    const parsedBody = createDayRecordBodySchema.safeParse(body);
+
+    if (!parsedBody.success) {
+      throw new AppError(
+        ERROR_CODES.VALIDATION_ERROR,
+        'Invalid day-record create payload',
+        400,
+      );
+    }
+
+    const supabase = getSupabaseAdmin();
+
+    const { data: existingRow, error: existingError } = await supabase
+      .from('day_records')
+      .select('id, date, average_score, status')
+      .eq('user_id', authUser.userId)
+      .eq('date', parsedBody.data.date)
+      .maybeSingle<DayRecordRow>();
+
+    if (existingError) {
+      throw new AppError(
+        ERROR_CODES.INTERNAL_ERROR,
+        'Failed to load day record',
+        500,
+      );
+    }
+
+    if (existingRow) {
+      return NextResponse.json({
+        dayRecord: {
+          id: existingRow.id,
+          date: existingRow.date,
+          averageScore: existingRow.average_score,
+          status: existingRow.status,
+        },
+      });
+    }
+
+    const { data: insertedRow, error: insertError } = await supabase
+      .from('day_records')
+      .insert({
+        user_id: authUser.userId,
+        date: parsedBody.data.date,
+        status: 'pending',
+        average_score: null,
+      })
+      .select('id, date, average_score, status')
+      .single<DayRecordRow>();
+
+    if (!insertError && insertedRow) {
+      return NextResponse.json(
+        {
+          dayRecord: {
+            id: insertedRow.id,
+            date: insertedRow.date,
+            averageScore: insertedRow.average_score,
+            status: insertedRow.status,
+          },
+        },
+        { status: 201 },
+      );
+    }
+
+    const { data: conflictedRow, error: conflictedError } = await supabase
+      .from('day_records')
+      .select('id, date, average_score, status')
+      .eq('user_id', authUser.userId)
+      .eq('date', parsedBody.data.date)
+      .maybeSingle<DayRecordRow>();
+
+    if (conflictedError || !conflictedRow) {
+      throw new AppError(
+        ERROR_CODES.INTERNAL_ERROR,
+        'Failed to load existing day record',
+        500,
+      );
+    }
+
+    return NextResponse.json({
+      dayRecord: {
+        id: conflictedRow.id,
+        date: conflictedRow.date,
+        averageScore: conflictedRow.average_score,
+        status: conflictedRow.status,
+      },
     });
   } catch (error) {
     const { error: apiError, status } = toErrorResponse(error);

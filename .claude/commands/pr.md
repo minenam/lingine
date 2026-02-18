@@ -1,6 +1,6 @@
 ---
-description: main 대비 현재 브랜치 커밋을 분석하여 PR 템플릿 생성
-allowed-tools: Bash(git log *), Bash(git diff *), Bash(git branch *), Bash(git fetch *)
+description: main 대비 현재 브랜치 커밋을 분석하여 PR 생성
+allowed-tools: Bash(git log *), Bash(git diff *), Bash(git branch *), Bash(git fetch *), Bash(git push *), Bash(git status *), Bash(gh pr create *), Bash(gh pr view *), Bash(gh pr list *)
 ---
 
 # PR 템플릿 생성
@@ -24,6 +24,9 @@ origin/main 대비 커밋 목록:
 
 변경 파일 목록:
 !`git diff origin/main...HEAD --name-only`
+
+원격 브랜치 push 여부:
+!`git status -sb | head -2`
 
 ---
 
@@ -74,3 +77,22 @@ origin/main 대비 커밋 목록:
 **PR 본문**
 <본문>
 ```
+
+### PR 생성
+
+PR 제목과 본문을 출력한 뒤 아래 순서로 진행한다.
+
+1. **원격 브랜치 확인**: `git status -sb` 결과에 `origin/`이 없거나 ahead 상태면 `git push -u origin <브랜치명>`을 실행한다.
+2. **사용자 확인**: 위 내용으로 GitHub PR을 생성할지 사용자에게 확인한다.
+3. **PR 생성**: 승인 시 아래 형식으로 PR을 생성한다.
+
+```bash
+gh pr create --base main \
+  --title "<PR 제목>" \
+  --body "$(cat <<'EOF'
+<PR 본문>
+EOF
+)"
+```
+
+4. **결과 출력**: 생성된 PR URL을 출력한다.
