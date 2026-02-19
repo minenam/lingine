@@ -409,7 +409,13 @@ Dictation 세션 생성
     "totalScore": 92,
     "status": "completed",
     "audioSources": [
-      { "id": "uuid", "type": "file", "fileName": "speech.mp3" }
+      {
+        "id": "uuid",
+        "type": "file",
+        "fileName": "speech.mp3",
+        "fileType": "mp3",
+        "sourceUrl": "https://<supabase-url>/storage/v1/object/public/audio/..."
+      }
     ],
     "sentences": [
       {
