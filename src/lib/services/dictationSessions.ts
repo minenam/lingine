@@ -101,6 +101,31 @@ export async function createDictationSession(params: {
     throw new AppError(ERROR_CODES.NOT_FOUND, 'Day record not found', 404);
   }
 
+  const { data: existingSessions, error: existingSessionError } = await supabase
+    .from('dictation_sessions')
+    .select('id, status')
+    .eq('day_record_id', dayRecordId);
+
+  if (existingSessionError) {
+    throw new AppError(
+      ERROR_CODES.INTERNAL_ERROR,
+      'Failed to validate existing sessions',
+      500,
+    );
+  }
+
+  const hasCompletedSession = (existingSessions ?? []).some(
+    (session) => session.status === 'completed',
+  );
+
+  if (hasCompletedSession) {
+    throw new AppError(
+      ERROR_CODES.VALIDATION_ERROR,
+      'Completed sessions cannot be overwritten',
+      400,
+    );
+  }
+
   const { data: session, error: sessionError } = await supabase
     .from('dictation_sessions')
     .insert({
