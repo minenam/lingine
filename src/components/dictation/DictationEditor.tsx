@@ -128,6 +128,10 @@ export default function DictationEditor({ sessionId }: Props) {
       return;
     }
 
+    if (status === 'completed') {
+      return;
+    }
+
     latestUserInputRef.current = userInput;
     setSaveState('saving');
 
@@ -174,10 +178,14 @@ export default function DictationEditor({ sessionId }: Props) {
     return () => {
       clearTimeout(timer);
     };
-  }, [sessionId, userInput]);
+  }, [sessionId, status, userInput]);
 
   useEffect(() => {
     if (!isHydratedRef.current) {
+      return;
+    }
+
+    if (status === 'completed') {
       return;
     }
 
@@ -252,7 +260,7 @@ export default function DictationEditor({ sessionId }: Props) {
     };
 
     void saveKeyword();
-  }, [keyword, sessionId]);
+  }, [keyword, sessionId, status]);
 
   if (isLoading) {
     return <p>Loading...</p>;
@@ -430,12 +438,14 @@ export default function DictationEditor({ sessionId }: Props) {
           value={keyword}
           onChange={(event) => setKeyword(event.target.value)}
           placeholder="Keyword (optional)"
+          disabled={status === 'completed'}
           style={{
             width: '100%',
             height: '44px',
             borderRadius: '10px',
             border: '1px solid #ddd',
             padding: '0 12px',
+            background: status === 'completed' ? '#f5f5f5' : '#fff',
           }}
         />
       </div>
@@ -445,6 +455,7 @@ export default function DictationEditor({ sessionId }: Props) {
           value={userInput}
           onChange={(event) => setUserInput(event.target.value)}
           placeholder="Type what you hear..."
+          disabled={status === 'completed'}
           style={{
             width: '100%',
             minHeight: '260px',
@@ -452,9 +463,34 @@ export default function DictationEditor({ sessionId }: Props) {
             border: '1px solid #ddd',
             padding: '12px',
             resize: 'vertical',
+            background: status === 'completed' ? '#f5f5f5' : '#fff',
           }}
         />
       </div>
+
+      {status === 'completed' ? (
+        <p style={{ color: '#666', marginTop: '8px' }}>
+          완료된 세션은 난이도만 수정할 수 있습니다.
+        </p>
+      ) : null}
+
+      <button
+        type="button"
+        onClick={() => router.push(`/dictation/${sessionId}/result`)}
+        style={{
+          marginTop: '16px',
+          width: '100%',
+          borderRadius: '10px',
+          border: 'none',
+          background: '#25a05a',
+          color: '#fff',
+          padding: '12px 16px',
+          cursor: 'pointer',
+          fontWeight: 700,
+        }}
+      >
+        Next
+      </button>
 
       {errorMessage ? <p style={{ color: '#cf2e2e' }}>{errorMessage}</p> : null}
       {!errorMessage && saveState === 'saving' ? (
