@@ -9,6 +9,11 @@ type SessionDetailResponse = {
     userInput: string | null;
     keyword: string | null;
     status: 'in_progress' | 'completed';
+    audioSources: Array<{
+      id: string;
+      type: 'file' | 'youtube';
+      fileName: string | null;
+    }>;
   };
 };
 
@@ -21,6 +26,19 @@ function normalizeKeyword(value: string) {
   return trimmed.length === 0 ? null : trimmed;
 }
 
+function extractYoutubeVideoId(fileName: string | null) {
+  if (!fileName) {
+    return null;
+  }
+
+  if (!fileName.startsWith('youtube:')) {
+    return null;
+  }
+
+  const videoId = fileName.slice('youtube:'.length);
+  return /^[a-zA-Z0-9_-]{11}$/.test(videoId) ? videoId : null;
+}
+
 export default function DictationEditor({ sessionId }: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
@@ -31,6 +49,16 @@ export default function DictationEditor({ sessionId }: Props) {
   const [status, setStatus] = useState<'in_progress' | 'completed'>(
     'in_progress',
   );
+  const [audioSources, setAudioSources] = useState<
+    Array<{
+      id: string;
+      type: 'file' | 'youtube';
+      fileName: string | null;
+    }>
+  >([]);
+  const [selectedAudioSourceId, setSelectedAudioSourceId] = useState<
+    string | null
+  >(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>(
     'idle',
   );
@@ -61,6 +89,9 @@ export default function DictationEditor({ sessionId }: Props) {
         setUserInput(data.session.userInput ?? '');
         setKeyword(data.session.keyword ?? '');
         setStatus(data.session.status);
+        const loadedAudioSources = data.session.audioSources ?? [];
+        setAudioSources(loadedAudioSources);
+        setSelectedAudioSourceId(loadedAudioSources[0]?.id ?? null);
         setSaveState('saved');
         setErrorMessage('');
       } catch {
@@ -141,6 +172,15 @@ export default function DictationEditor({ sessionId }: Props) {
     return <p>Loading...</p>;
   }
 
+  const selectedAudioSource =
+    audioSources.find((source) => source.id === selectedAudioSourceId) ??
+    audioSources[0] ??
+    null;
+  const selectedYoutubeVideoId =
+    selectedAudioSource?.type === 'youtube'
+      ? extractYoutubeVideoId(selectedAudioSource.fileName)
+      : null;
+
   return (
     <section style={{ maxWidth: '760px', margin: '0 auto', width: '100%' }}>
       <header
@@ -174,6 +214,80 @@ export default function DictationEditor({ sessionId }: Props) {
           </button>
         ))}
       </div>
+
+      <section
+        style={{
+          marginTop: '16px',
+          border: '1px solid #e9e9e9',
+          borderRadius: '12px',
+          padding: '12px',
+          background: '#fff',
+          position: 'sticky',
+          top: '12px',
+          zIndex: 10,
+        }}
+      >
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {audioSources.map((source, index) => (
+            <button
+              key={source.id}
+              type="button"
+              onClick={() => setSelectedAudioSourceId(source.id)}
+              style={{
+                borderRadius: '999px',
+                border:
+                  source.id === selectedAudioSource?.id
+                    ? '1px solid #1a1a2e'
+                    : '1px solid #ddd',
+                background:
+                  source.id === selectedAudioSource?.id ? '#1a1a2e' : '#fff',
+                color: source.id === selectedAudioSource?.id ? '#fff' : '#333',
+                padding: '6px 12px',
+                fontSize: '13px',
+              }}
+            >
+              {source.type === 'youtube'
+                ? `YouTube ${index + 1}`
+                : `File ${index + 1}`}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ marginTop: '10px' }}>
+          {selectedAudioSource?.type === 'youtube' &&
+            selectedYoutubeVideoId && (
+              <iframe
+                title="YouTube audio source"
+                src={`https://www.youtube.com/embed/${selectedYoutubeVideoId}`}
+                style={{
+                  width: '100%',
+                  height: '220px',
+                  border: 0,
+                  borderRadius: '10px',
+                }}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
+              />
+            )}
+          {selectedAudioSource?.type === 'youtube' &&
+            !selectedYoutubeVideoId && (
+              <p style={{ margin: 0, color: '#cf2e2e', fontSize: '14px' }}>
+                유효한 YouTube 비디오 ID를 찾지 못했습니다.
+              </p>
+            )}
+          {selectedAudioSource?.type === 'file' && (
+            <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>
+              파일 오디오 재생은 다음 단계에서 연결 예정입니다.
+            </p>
+          )}
+          {!selectedAudioSource && (
+            <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>
+              연결된 오디오 소스가 없습니다.
+            </p>
+          )}
+        </div>
+      </section>
 
       <div style={{ marginTop: '16px' }}>
         <input
