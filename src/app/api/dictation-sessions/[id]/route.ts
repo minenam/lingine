@@ -208,7 +208,7 @@ export async function PATCH(
   try {
     const authUser = await getAuthUser();
     const { id } = await params;
-    await loadAuthorizedSession(id, authUser.userId);
+    const session = await loadAuthorizedSession(id, authUser.userId);
 
     const body = await request.json();
     const parsedBody = updateSessionBodySchema.safeParse(body);
@@ -219,6 +219,20 @@ export async function PATCH(
         'Invalid session update payload',
         400,
       );
+    }
+
+    if (session.status === 'completed') {
+      const hasNonDifficultyUpdate =
+        parsedBody.data.userInput !== undefined ||
+        parsedBody.data.keyword !== undefined;
+
+      if (hasNonDifficultyUpdate || parsedBody.data.difficulty === undefined) {
+        throw new AppError(
+          ERROR_CODES.VALIDATION_ERROR,
+          'Completed sessions only allow difficulty updates',
+          400,
+        );
+      }
     }
 
     const normalizedKeyword = normalizeKeyword(parsedBody.data.keyword);

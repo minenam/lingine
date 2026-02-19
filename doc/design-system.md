@@ -92,6 +92,12 @@
 - 3개 탭: Home / Review / Settings
 - Active 탭: 아이콘 채움 + 텍스트 진하게
 - Inactive: #888
+- 적용 화면: Login/Dashboard 제외 주요 화면(Module Hub, Listening Setup, Dictation, Result, Review)
+
+### 공통 헤더
+
+- Dashboard 제외 주요 화면은 상단 `<` 뒤로가기 헤더를 사용
+- 뒤로가기는 직전 학습 흐름(허브/대시보드)으로 복귀 가능해야 함
 
 ---
 
@@ -238,14 +244,14 @@ Module Hub에서 Listening 선택 시 진입하는 소스 등록 화면.
 
 ## Micro-Interaction Spec
 
-| 요소             | 애니메이션            |
-| ---------------- | --------------------- |
-| 카드 클릭        | scale 0.98 (120ms)    |
-| 버튼 활성화      | opacity fade          |
-| 결과 표시        | slide up + fade       |
-| 난이도 선택      | background transition |
-| 캘린더 뷰 토글   | slide down / up       |
-| 소스 카드 확장   | slide down + fade in  |
+| 요소           | 애니메이션            |
+| -------------- | --------------------- |
+| 카드 클릭      | scale 0.98 (120ms)    |
+| 버튼 활성화    | opacity fade          |
+| 결과 표시      | slide up + fade       |
+| 난이도 선택    | background transition |
+| 캘린더 뷰 토글 | slide down / up       |
+| 소스 카드 확장 | slide down + fade in  |
 
 - 모든 애니메이션: 200ms 이하, ease-out, bounce 금지
 
