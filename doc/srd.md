@@ -108,7 +108,10 @@
 
 **인터랙션**:
 
-- Listening 카드 클릭 → Listening Setup
+- Listening 카드 클릭:
+  - 완료 세션 존재 시 해당 세션 Result로 이동
+  - 진행 중 세션 존재 시 해당 세션 Dictation으로 이동
+  - 세션 없음 시 Listening Setup으로 이동
 
 **day_records 자동 생성 규칙**:
 
@@ -173,7 +176,7 @@
    - YouTube: iframe embed 재생 (YouTube IFrame API)
 3. 자동 저장: 텍스트 입력 변경 시 debounce 3초 후 `dictation_sessions.user_input` 업데이트
    - **실패 시 재시도**: 네트워크 실패 시 3초 간격으로 최대 3회 조용히 재시도, 3회 모두 실패 시 다음 debounce에서 재시도
-4. 난이도 변경 시 `dictation_sessions.difficulty` 업데이트
+4. 난이도 변경 시 `dictation_sessions.difficulty` 업데이트 (완료 상태에서도 수정 가능)
 5. 키워드 변경 시 `dictation_sessions.keyword` 업데이트 (완료 상태에서도 수정 가능)
 
 **출력**:
@@ -237,7 +240,7 @@
 
 - `day_records` 업데이트: 해당 날짜의 모든 세션 평균 점수를 `average_score`에 반영
 - **day_records.status 전이**: 세션 하나라도 채점 완료(`completed`) 시 day_record도 `completed`로 전환
-- 완료 후 재채점 가능 (정답 수정 → 재채점)
+- 완료 후 정답/PDF/채점은 수정 불가 (잠금), `difficulty`/`keyword`만 수정 가능
 - `keyword`는 메타데이터 필드이며 채점 로직(`user_input`, `answer_key`)에서 제외
 
 ---
@@ -273,7 +276,7 @@
 
 **인터랙션**:
 
-- 카드 클릭 → 해당 세션의 Dictation + Result 상세 화면
+- 카드 클릭 → 해당 세션 Result 화면으로 이동
 
 ---
 
@@ -377,6 +380,11 @@
 
 - 오디오 플레이어: Sticky 고정 (스크롤 시에도 항상 접근 가능)
 - 버튼 최소 터치 영역: 44x44px
+
+### NFR-06 내비게이션 일관성
+
+- Dashboard를 제외한 주요 학습 화면(Module Hub, Listening Setup, Dictation, Result, Review)은 상단 `<` 뒤로가기 헤더를 제공
+- Login/Dashboard를 제외한 주요 화면에 Bottom Nav(Home/Review/Settings)를 제공
 
 ---
 

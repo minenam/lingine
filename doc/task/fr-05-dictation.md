@@ -7,8 +7,10 @@
 ### A. 세션 생성/조회/수정 API
 
 - [x] `POST /api/dictation-sessions` 구현(세션 생성 + audioSourceIds 연결)
+- [x] 완료 세션이 있는 day_record에 대해 신규 세션 생성 차단(덮어쓰기 방지)
 - [x] `GET /api/dictation-sessions/:id` 구현
 - [x] `PATCH /api/dictation-sessions/:id` 구현(`userInput`, `difficulty`, `keyword`)
+- [x] 완료 세션 잠금 정책 반영(`difficulty`, `keyword`만 수정 허용)
 
 ### B. Dictation 화면 구성
 
@@ -16,6 +18,7 @@
 - [x] Sticky 오디오 플레이어 영역 구현
 - [x] 텍스트 입력 textarea 구성(placeholder 포함)
 - [x] 키워드 입력 input 구성(nullable, 미입력 허용)
+- [x] Result 이동 CTA(`Next`) 연결
 
 ### C. 오디오 재생 분기
 
@@ -24,14 +27,21 @@
 - [x] YouTube 소스: iframe 임베드 재생
 - [x] 반복 재생 토글(파일/YouTube 공통)
 
-### D. 자동 저장
+### D. 동선/잠금 정책
+
+- [x] Module Hub 진입 분기 반영(완료→Result, 진행중→Dictation, 미생성→Setup)
+- [x] 완료 세션에서 정답/PDF/채점 재수정 불가 정책 연계
+- [x] 완료 세션 편집 범위 제한(`difficulty`, `keyword`)
+
+### E. 자동 저장
 
 - [x] 입력 변경 debounce 3초 적용
 - [x] 네트워크 실패 시 3초 간격 최대 3회 조용히 재시도
 - [x] 난이도 변경 시 즉시 PATCH 반영
-- [x] 키워드 변경 시 즉시 PATCH 반영(완료 상태 포함)
+- [x] 키워드 변경 시 즉시 PATCH 반영
 
-### E. 검증
+### F. 검증
 
 - [ ] 입력 복원/저장 타이밍 확인
-- [ ] 난이도/오디오 소스 전환 동작 확인
+- [ ] 오디오 소스 전환 동작 확인
+- [ ] 완료 세션 잠금 시나리오 확인(허용/차단 필드)

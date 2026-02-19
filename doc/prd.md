@@ -29,7 +29,10 @@
 [2. Dashboard] (주간 캘린더 뷰, 학습 현황 확인)
     ↓ (날짜 클릭 또는 Start Learning)
 [3. Module Hub] (모듈 선택)
-    ├── [🎧 Listening] (활성) → [4. Listening Setup]
+    ├── [🎧 Listening] (활성)
+    │     ├── 완료 세션 존재 → [6. Result]
+    │     ├── 진행 중 세션 존재 → [5. Dictation]
+    │     └── 세션 없음 → [4. Listening Setup]
     ├── [📖 Vocabulary] (Coming Soon)
     ├── [👁 Reading] (Locked)
     └── [✍️ Writing] (Locked)
@@ -252,7 +255,7 @@ Dictation 하단에 이어지는 영역.
   - 문장별 점수 (연한 초록 배경 행)
 - **완료 버튼**: 초록색 "Complete & Save"
 - 채점 전 완료 버튼 비활성화
-- 완료 후 재채점 가능
+- 완료 후 정답/PDF/채점 잠금 (`difficulty`/`keyword`만 수정 가능)
 - 채점 로직: 서버 사이드 API (추후 AI 채점 확장 고려) — 단순 단어 매칭 (대소문자/구두점 무시, 정규화 후 비교), LCS 기반 순서 보존 매칭
 
 ---
@@ -289,7 +292,7 @@ Dictation 하단에 이어지는 영역.
 - **필터**: 5개 Pill 버튼 — All / Incorrect / Hard / Med / Easy
 - **카드 정보**: 날짜 + 정확도 badge + 모듈 태그 + 난이도 태그 + 문장 미리보기
 - **정확도 색상**: Green (70% 이상), Orange (50~69%), Red (50% 미만)
-- 리스트 클릭 시 해당 문장의 오디오 구간과 입력/정답 확인
+- 리스트 클릭 시 해당 세션 Result 화면으로 이동
 - MVP는 단순 리스트 구조
 
 ---
