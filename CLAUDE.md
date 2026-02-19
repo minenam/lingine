@@ -60,8 +60,31 @@ src/
 │   ├── auth.ts                # getAuthUser() — JWT 검증
 │   ├── supabase.ts            # client/server Supabase 인스턴스
 │   ├── errors.ts              # 표준 에러 코드/응답
-│   └── env.ts                 # 환경변수
+│   ├── env.ts                 # 환경변수
+│   ├── dateUtils.ts           # 날짜 유틸 함수
+│   └── services/              # API 라우트에서 분리된 DB 쿼리/비즈니스 로직
 └── types/api.ts               # 공통 API 타입
+
+## 아키텍처 원칙
+
+### Server / Client 경계
+
+- `'use client'` 범위를 최소화한다. 데이터 fetch는 Server Component(`page.tsx`)에서, 인터랙션·상태만 Client Component로 위임한다.
+- Server Component에서 fetch한 초기 데이터는 props(`initialData`)로 Client에 주입한다.
+- Server fetch 실패 시 crash 금지 — try/catch로 감싸고 `initialData={undefined}`로 Client에 위임한다.
+
+### Client 컴포넌트 구조
+
+- 상태 + fetch 로직 → `useXxx` 커스텀 훅 (`components/<feature>/useXxx.ts`)
+- 순수 유틸 함수 → `lib/` (예: `lib/dateUtils.ts`)
+- 반복되는 JSX 블록 → 하위 컴포넌트로 추출
+
+### API 라우트 구조
+
+- `route.ts`는 **검증 → 서비스 호출 → 응답 반환**만 담당한다.
+- DB 쿼리 / 비즈니스 로직은 `lib/services/<name>.ts`로 분리한다.
+
+---
 
 ## 핵심 컨벤션
 
@@ -99,7 +122,7 @@ src/
 
 ### 파일 크기 제한
 
-+파일이 아래 기준을 초과하면 **반드시 분리**한다:
+파일이 아래 기준을 초과하면 **반드시 분리**한다:
 
 | 파일 종류 | 최대 줄 수 | 분리 방법 |
 |-----------|-----------|-----------|
