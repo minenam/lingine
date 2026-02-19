@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 type SessionDetailResponse = {
   session: {
@@ -13,6 +14,8 @@ type SessionDetailResponse = {
       id: string;
       type: 'file' | 'youtube';
       fileName: string | null;
+      fileType: string | null;
+      sourceUrl: string | null;
     }>;
   };
 };
@@ -40,6 +43,7 @@ function extractYoutubeVideoId(fileName: string | null) {
 }
 
 export default function DictationEditor({ sessionId }: Props) {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -54,20 +58,24 @@ export default function DictationEditor({ sessionId }: Props) {
       id: string;
       type: 'file' | 'youtube';
       fileName: string | null;
+      fileType: string | null;
+      sourceUrl: string | null;
     }>
   >([]);
   const [selectedAudioSourceId, setSelectedAudioSourceId] = useState<
     string | null
   >(null);
+  const [isLoopEnabled, setIsLoopEnabled] = useState(false);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>(
     'idle',
   );
 
-  const latestPayloadRef = useRef<{
-    userInput: string;
-    difficulty: 'easy' | 'med' | 'hard';
-    keyword: string;
-  } | null>(null);
+  const isHydratedRef = useRef(false);
+  const latestUserInputRef = useRef<string | null>(null);
+  const lastSavedDifficultyRef = useRef<'easy' | 'med' | 'hard'>('med');
+  const lastSavedKeywordRef = useRef('');
+  const difficultyRequestRef = useRef(0);
+  const keywordRequestRef = useRef(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -92,6 +100,9 @@ export default function DictationEditor({ sessionId }: Props) {
         const loadedAudioSources = data.session.audioSources ?? [];
         setAudioSources(loadedAudioSources);
         setSelectedAudioSourceId(loadedAudioSources[0]?.id ?? null);
+        lastSavedDifficultyRef.current = data.session.difficulty;
+        lastSavedKeywordRef.current = data.session.keyword ?? '';
+        isHydratedRef.current = true;
         setSaveState('saved');
         setErrorMessage('');
       } catch {
@@ -113,21 +124,17 @@ export default function DictationEditor({ sessionId }: Props) {
   }, [sessionId]);
 
   useEffect(() => {
-    if (isLoading) {
+    if (!isHydratedRef.current) {
       return;
     }
 
-    latestPayloadRef.current = {
-      userInput,
-      difficulty,
-      keyword,
-    };
+    latestUserInputRef.current = userInput;
     setSaveState('saving');
 
     const timer = setTimeout(() => {
-      const payload = latestPayloadRef.current;
+      const payload = latestUserInputRef.current;
 
-      if (!payload) {
+      if (payload === null) {
         return;
       }
 
@@ -139,15 +146,15 @@ export default function DictationEditor({ sessionId }: Props) {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              userInput: payload.userInput,
-              difficulty: payload.difficulty,
-              keyword: normalizeKeyword(payload.keyword),
+              userInput: payload,
             }),
           });
 
           if (response.ok) {
-            latestPayloadRef.current = null;
-            setSaveState('saved');
+            if (latestUserInputRef.current === payload) {
+              latestUserInputRef.current = null;
+              setSaveState('saved');
+            }
             setErrorMessage('');
             return;
           }
@@ -158,6 +165,7 @@ export default function DictationEditor({ sessionId }: Props) {
         }
 
         setErrorMessage('자동 저장에 실패했습니다. 잠시 후 다시 시도됩니다.');
+        setSaveState('idle');
       };
 
       void save();
@@ -166,7 +174,85 @@ export default function DictationEditor({ sessionId }: Props) {
     return () => {
       clearTimeout(timer);
     };
-  }, [difficulty, isLoading, keyword, sessionId, userInput]);
+  }, [sessionId, userInput]);
+
+  useEffect(() => {
+    if (!isHydratedRef.current) {
+      return;
+    }
+
+    if (difficulty === lastSavedDifficultyRef.current) {
+      return;
+    }
+
+    difficultyRequestRef.current += 1;
+    const requestId = difficultyRequestRef.current;
+
+    const saveDifficulty = async () => {
+      const response = await fetch(`/api/dictation-sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          difficulty,
+        }),
+      });
+
+      if (requestId !== difficultyRequestRef.current) {
+        return;
+      }
+
+      if (response.ok) {
+        lastSavedDifficultyRef.current = difficulty;
+        setErrorMessage('');
+        return;
+      }
+
+      setErrorMessage('난이도 저장에 실패했습니다.');
+    };
+
+    void saveDifficulty();
+  }, [difficulty, sessionId]);
+
+  useEffect(() => {
+    if (!isHydratedRef.current) {
+      return;
+    }
+
+    if (keyword === lastSavedKeywordRef.current) {
+      return;
+    }
+
+    keywordRequestRef.current += 1;
+    const requestId = keywordRequestRef.current;
+
+    const saveKeyword = async () => {
+      const response = await fetch(`/api/dictation-sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          keyword: normalizeKeyword(keyword),
+        }),
+      });
+
+      if (requestId !== keywordRequestRef.current) {
+        return;
+      }
+
+      if (response.ok) {
+        lastSavedKeywordRef.current = keyword;
+        setErrorMessage('');
+        return;
+      }
+
+      setErrorMessage('키워드 저장에 실패했습니다.');
+    };
+
+    void saveKeyword();
+  }, [keyword, sessionId]);
 
   if (isLoading) {
     return <p>Loading...</p>;
@@ -190,6 +276,20 @@ export default function DictationEditor({ sessionId }: Props) {
           alignItems: 'center',
         }}
       >
+        <button
+          type="button"
+          onClick={() => router.back()}
+          style={{
+            border: 'none',
+            background: 'transparent',
+            padding: 0,
+            fontWeight: 700,
+            color: '#111',
+            cursor: 'pointer',
+          }}
+        >
+          {'< Back'}
+        </button>
         <h1 style={{ margin: 0 }}>Full Dictation</h1>
         <span style={{ color: '#666', fontSize: '14px' }}>
           상태: {status === 'completed' ? 'Completed' : 'In Progress'}
@@ -254,11 +354,36 @@ export default function DictationEditor({ sessionId }: Props) {
         </div>
 
         <div style={{ marginTop: '10px' }}>
+          <label
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '10px',
+              fontSize: '14px',
+              color: '#333',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={isLoopEnabled}
+              onChange={(event) => setIsLoopEnabled(event.target.checked)}
+            />
+            반복 재생
+          </label>
+
           {selectedAudioSource?.type === 'youtube' &&
             selectedYoutubeVideoId && (
               <iframe
                 title="YouTube audio source"
-                src={`https://www.youtube.com/embed/${selectedYoutubeVideoId}`}
+                src={`https://www.youtube.com/embed/${selectedYoutubeVideoId}?${new URLSearchParams(
+                  isLoopEnabled
+                    ? {
+                        loop: '1',
+                        playlist: selectedYoutubeVideoId,
+                      }
+                    : {},
+                ).toString()}`}
                 style={{
                   width: '100%',
                   height: '220px',
@@ -277,9 +402,20 @@ export default function DictationEditor({ sessionId }: Props) {
               </p>
             )}
           {selectedAudioSource?.type === 'file' && (
-            <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>
-              파일 오디오 재생은 다음 단계에서 연결 예정입니다.
-            </p>
+            <>
+              {selectedAudioSource.sourceUrl ? (
+                <audio
+                  controls
+                  src={selectedAudioSource.sourceUrl}
+                  loop={isLoopEnabled}
+                  style={{ width: '100%' }}
+                />
+              ) : (
+                <p style={{ margin: 0, color: '#cf2e2e', fontSize: '14px' }}>
+                  파일 재생 URL을 불러오지 못했습니다.
+                </p>
+              )}
+            </>
           )}
           {!selectedAudioSource && (
             <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>

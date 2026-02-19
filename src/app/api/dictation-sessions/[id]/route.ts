@@ -45,6 +45,9 @@ type SessionAudioSourceRow = {
     id: string;
     type: 'file' | 'youtube';
     file_name: string | null;
+    file_type: string | null;
+    storage_path: string | null;
+    url: string | null;
   } | null;
 };
 
@@ -122,7 +125,9 @@ export async function GET(
     const { data: sessionAudioSources, error: audioSourceError } =
       await supabase
         .from('session_audio_sources')
-        .select('audio_source:audio_sources(id, type, file_name)')
+        .select(
+          'audio_source:audio_sources(id, type, file_name, file_type, storage_path, url)',
+        )
         .eq('session_id', session.id)
         .returns<SessionAudioSourceRow[]>();
 
@@ -165,11 +170,23 @@ export async function GET(
         audioSources: (sessionAudioSources ?? [])
           .map((row) => row.audio_source)
           .filter((source) => source != null)
-          .map((source) => ({
-            id: source.id,
-            type: source.type,
-            fileName: source.file_name,
-          })),
+          .map((source) => {
+            const sourceUrl =
+              source.type === 'file' && source.storage_path
+                ? supabase.storage
+                    .from('audio')
+                    .getPublicUrl(source.storage_path.replace(/^audio\//, ''))
+                    .data.publicUrl
+                : source.url;
+
+            return {
+              id: source.id,
+              type: source.type,
+              fileName: source.file_name,
+              fileType: source.file_type,
+              sourceUrl,
+            };
+          }),
         sentences: (sentences ?? []).map((sentence) => ({
           sentenceIndex: sentence.sentence_index,
           userText: sentence.user_text,
