@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 type ReviewSession = {
   id: string;
@@ -25,6 +26,7 @@ type ReviewResponse = {
 type FilterType = 'all' | 'incorrect' | 'hard' | 'med' | 'easy';
 
 export default function ReviewSessions() {
+  const router = useRouter();
   const [sessions, setSessions] = useState<ReviewSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('all');
@@ -88,7 +90,26 @@ export default function ReviewSessions() {
 
   return (
     <section style={{ maxWidth: '860px', margin: '0 auto', width: '100%' }}>
-      <h1 style={{ margin: 0 }}>Review Notes</h1>
+      <header style={{ display: 'grid', gap: '6px' }}>
+        <button
+          type="button"
+          onClick={() => router.push('/dashboard')}
+          style={{
+            border: 'none',
+            background: 'transparent',
+            padding: 0,
+            margin: 0,
+            textAlign: 'left',
+            fontSize: '24px',
+            fontWeight: 700,
+            color: '#111',
+            cursor: 'pointer',
+          }}
+          aria-label="Back to dashboard"
+        >
+          {'< Review Notes'}
+        </button>
+      </header>
 
       <div
         style={{
@@ -147,10 +168,12 @@ export default function ReviewSessions() {
           {sessions.map((session) => (
             <li
               key={session.id}
+              onClick={() => router.push(`/dictation/${session.id}/result`)}
               style={{
                 border: '1px solid #e8e8e8',
                 borderRadius: '12px',
                 padding: '14px',
+                cursor: 'pointer',
               }}
             >
               <p style={{ margin: 0, fontWeight: 600 }}>

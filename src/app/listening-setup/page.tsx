@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
+import BottomNav from '@/components/layout/BottomNav';
 import { getAuthUser } from '@/lib/auth';
 import ListeningSetupClient from '@/components/listening/ListeningSetupClient';
 
@@ -26,11 +27,14 @@ export default async function ListeningSetupPage({
   }
 
   return (
-    <main style={{ minHeight: '100dvh', padding: '24px' }}>
+    <main
+      style={{ minHeight: '100dvh', padding: '24px', paddingBottom: '92px' }}
+    >
       <ListeningSetupClient
         date={params.date}
         dayRecordId={params.dayRecordId}
       />
+      <BottomNav active="home" />
     </main>
   );
 }

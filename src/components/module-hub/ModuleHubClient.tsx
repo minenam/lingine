@@ -29,11 +29,30 @@ export default function ModuleHubClient({ initialDate }: Props) {
     return toDateOnlyString(new Date());
   }, [initialDate]);
 
-  const { isLoading, errorMessage, dayRecord, listeningStatus } =
+  const { isLoading, errorMessage, dayRecord, listeningStatus, sessions } =
     useModuleHub(selectedDate);
 
   const handleListeningClick = () => {
     if (!dayRecord) {
+      return;
+    }
+
+    const completedSession = sessions.find(
+      (session) =>
+        session.status === 'completed' && session.totalScore !== null,
+    );
+
+    if (completedSession) {
+      router.push(`/dictation/${completedSession.id}/result`);
+      return;
+    }
+
+    const inProgressSession = sessions.find(
+      (session) => session.status === 'in_progress',
+    );
+
+    if (inProgressSession) {
+      router.push(`/dictation/${inProgressSession.id}`);
       return;
     }
 
