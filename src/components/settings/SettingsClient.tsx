@@ -36,6 +36,7 @@ export default function SettingsClient({
   const [isSavingDescription, setIsSavingDescription] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const installGuide = useMemo(
     () => [
@@ -156,6 +157,20 @@ export default function SettingsClient({
       );
     } finally {
       setIsBackingUp(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (!confirm('정말 로그아웃하시겠습니까?')) return;
+
+    setIsLoggingOut(true);
+
+    try {
+      await fetch('/api/users/logout', { method: 'POST' });
+      router.push('/login');
+      router.refresh();
+    } catch {
+      setIsLoggingOut(false);
     }
   };
 
@@ -371,6 +386,26 @@ export default function SettingsClient({
           <p style={{ margin: '8px 0 0', color: '#111' }}>Version v{version}</p>
         </div>
       </section>
+
+      <button
+        type="button"
+        onClick={handleLogout}
+        disabled={isLoggingOut}
+        style={{
+          marginTop: '12px',
+          width: '100%',
+          border: '1px solid #cf2e2e',
+          borderRadius: '10px',
+          height: '40px',
+          background: 'transparent',
+          color: isLoggingOut ? '#888' : '#cf2e2e',
+          fontSize: '14px',
+          fontWeight: 600,
+          cursor: isLoggingOut ? 'not-allowed' : 'pointer',
+        }}
+      >
+        {isLoggingOut ? 'Logging out...' : 'Logout'}
+      </button>
     </section>
   );
 }
