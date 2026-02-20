@@ -94,6 +94,10 @@ staged 파일이 없습니다. git add 후 다시 실행하세요.
 ```bash
 git commit -m "$(cat <<'EOF'
 <확정된 커밋 메시지>
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 EOF
 )"
 ```
