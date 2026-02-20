@@ -1,1 +1,3 @@
+pnpm stabilize:next-env
+git add next-env.d.ts
 pnpm lint-staged
