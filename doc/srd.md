@@ -305,6 +305,12 @@
 - PWA Install Guide: 브라우저별 홈 화면 추가 안내
 - Version: 앱 버전 표시
 
+**FR-08-4 로그아웃**:
+
+- 입력: "Logout" 버튼 클릭 → confirm 다이얼로그 확인
+- 처리: `POST /api/users/logout` 호출 (httpOnly 쿠키 삭제)
+- 출력: `/login` 페이지로 리다이렉트
+
 ---
 
 ## 3. 공통 기술 규칙

@@ -312,6 +312,8 @@ Dictation 하단에 이어지는 영역.
 |  App Info                             |
 |  - PWA Install Guide              >   |
 |  - Version v1.0.0                 >   |
+|                                       |
+|  [Logout]  (빨간 테두리 버튼)         |
 +---------------------------------------+
 ```
 

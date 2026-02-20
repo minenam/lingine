@@ -32,3 +32,10 @@
 
 - [x] 비밀번호 변경 후 재로그인 플로우 구현(`passwordChanged=1` 안내)
 - [x] 백업 JSON 구조/다운로드 동작 확인
+
+### F. 로그아웃
+
+- [x] App Info 섹션 아래 Logout 버튼 추가 (빨간 테두리 스타일)
+- [x] confirm 다이얼로그 후 `POST /api/users/logout` 호출
+- [x] 로그아웃 후 `/login` 리다이렉트
+- [x] `isLoggingOut` 상태로 중복 클릭 방지
