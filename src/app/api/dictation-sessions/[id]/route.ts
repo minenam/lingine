@@ -222,14 +222,10 @@ export async function PATCH(
     }
 
     if (session.status === 'completed') {
-      const hasNonDifficultyUpdate =
-        parsedBody.data.userInput !== undefined ||
-        parsedBody.data.keyword !== undefined;
-
-      if (hasNonDifficultyUpdate || parsedBody.data.difficulty === undefined) {
+      if (parsedBody.data.userInput !== undefined) {
         throw new AppError(
           ERROR_CODES.VALIDATION_ERROR,
-          'Completed sessions only allow difficulty updates',
+          'Completed sessions only allow difficulty and keyword updates',
           400,
         );
       }

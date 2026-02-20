@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 type SessionDetailResponse = {
   session: {
     id: string;
+    difficulty: 'easy' | 'med' | 'hard';
     answerKey: string | null;
     answerPdfPath: string | null;
     keyword: string | null;
@@ -93,10 +94,11 @@ function parseApiErrorMessage(payload: unknown, fallback: string) {
 export default function ResultKeywordEditor({ sessionId }: Props) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
-  const [isSavingKeyword, setIsSavingKeyword] = useState(false);
+  const [isSavingMeta, setIsSavingMeta] = useState(false);
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
   const [isCheckingAnswer, setIsCheckingAnswer] = useState(false);
 
+  const [difficulty, setDifficulty] = useState<'easy' | 'med' | 'hard'>('med');
   const [keyword, setKeyword] = useState('');
   const [answerKeyInput, setAnswerKeyInput] = useState('');
   const [answerPdfPath, setAnswerPdfPath] = useState<string | null>(null);
@@ -153,6 +155,7 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
           return;
         }
 
+        setDifficulty(data.session.difficulty);
         setKeyword(data.session.keyword ?? '');
         setAnswerKeyInput(data.session.answerKey ?? '');
         setAnswerPdfPath(data.session.answerPdfPath);
@@ -178,8 +181,8 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
     };
   }, [sessionId]);
 
-  const saveKeyword = async () => {
-    setIsSavingKeyword(true);
+  const saveMeta = async () => {
+    setIsSavingMeta(true);
     setErrorMessage('');
     setSuccessMessage('');
 
@@ -190,6 +193,7 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          difficulty,
           keyword: normalizeKeyword(keyword),
         }),
       });
@@ -197,18 +201,16 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
       const payload = (await response.json()) as unknown;
 
       if (!response.ok) {
-        throw new Error(
-          parseApiErrorMessage(payload, '키워드 저장에 실패했습니다.'),
-        );
+        throw new Error(parseApiErrorMessage(payload, '저장에 실패했습니다.'));
       }
 
-      setSuccessMessage('키워드를 저장했습니다.');
+      setSuccessMessage('난이도와 키워드를 저장했습니다.');
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : '키워드 저장에 실패했습니다.',
+        error instanceof Error ? error.message : '저장에 실패했습니다.',
       );
     } finally {
-      setIsSavingKeyword(false);
+      setIsSavingMeta(false);
     }
   };
 
@@ -334,15 +336,38 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
     }
   };
 
-  const completeAndSave = () => {
+  const completeAndSave = async () => {
     if (totalScore === null) {
       return;
     }
 
     setErrorMessage('');
-    setSuccessMessage(
-      '결과를 저장했습니다. 이 화면에서 계속 확인할 수 있습니다.',
-    );
+    setSuccessMessage('');
+
+    try {
+      const response = await fetch(`/api/dictation-sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          difficulty,
+          keyword: normalizeKeyword(keyword),
+        }),
+      });
+
+      const payload = (await response.json()) as unknown;
+
+      if (!response.ok) {
+        throw new Error(parseApiErrorMessage(payload, '저장에 실패했습니다.'));
+      }
+
+      setSuccessMessage(
+        '결과를 저장했습니다. 이 화면에서 계속 확인할 수 있습니다.',
+      );
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : '저장에 실패했습니다.',
+      );
+    }
   };
 
   if (isLoading) {
@@ -499,9 +524,30 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
       )}
 
       <div style={{ marginTop: '18px' }}>
+        <p style={{ margin: '0 0 8px', fontWeight: 600 }}>Difficulty</p>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {(['easy', 'med', 'hard'] as const).map((level) => (
+            <button
+              key={level}
+              type="button"
+              onClick={() => setDifficulty(level)}
+              style={{
+                borderRadius: '999px',
+                border: '1px solid #ddd',
+                padding: '6px 12px',
+                background: difficulty === level ? '#1a1a2e' : '#fff',
+                color: difficulty === level ? '#fff' : '#333',
+                cursor: 'pointer',
+              }}
+            >
+              {level.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
         <label
           htmlFor="keyword-input"
-          style={{ display: 'block', marginBottom: '8px' }}
+          style={{ display: 'block', marginTop: '14px', marginBottom: '8px' }}
         >
           Keyword (optional)
         </label>
@@ -510,22 +556,20 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
           value={keyword}
           onChange={(event) => setKeyword(event.target.value)}
           placeholder="e.g. cut it short"
-          disabled={isCompletedLocked}
           style={{
             width: '100%',
             height: '44px',
             borderRadius: '10px',
             border: '1px solid #ddd',
             padding: '0 12px',
-            background: isCompletedLocked ? '#f5f5f5' : '#fff',
           }}
         />
         <button
           type="button"
           onClick={() => {
-            void saveKeyword();
+            void saveMeta();
           }}
-          disabled={isSavingKeyword || isCompletedLocked}
+          disabled={isSavingMeta}
           style={{
             marginTop: '10px',
             borderRadius: '10px',
@@ -533,20 +577,13 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
             background: '#1a1a2e',
             color: '#fff',
             padding: '10px 14px',
-            cursor:
-              isSavingKeyword || isCompletedLocked ? 'not-allowed' : 'pointer',
-            opacity: isSavingKeyword || isCompletedLocked ? 0.7 : 1,
+            cursor: isSavingMeta ? 'not-allowed' : 'pointer',
+            opacity: isSavingMeta ? 0.7 : 1,
           }}
         >
-          {isSavingKeyword ? 'Saving...' : 'Save keyword'}
+          {isSavingMeta ? 'Saving...' : 'Save'}
         </button>
       </div>
-
-      {isCompletedLocked ? (
-        <p style={{ marginTop: '10px', color: '#666' }}>
-          완료된 세션은 난이도만 수정할 수 있습니다.
-        </p>
-      ) : null}
 
       <section
         style={{
@@ -595,7 +632,9 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
 
       <button
         type="button"
-        onClick={completeAndSave}
+        onClick={() => {
+          void completeAndSave();
+        }}
         disabled={totalScore === null}
         style={{
           marginTop: '14px',
