@@ -10,7 +10,11 @@ type LoginErrorResponse = {
   };
 };
 
-export default function LoginForm() {
+type LoginFormProps = {
+  noticeMessage?: string;
+};
+
+export default function LoginForm({ noticeMessage }: LoginFormProps) {
   const router = useRouter();
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -101,6 +105,12 @@ export default function LoginForm() {
       {errorMessage ? (
         <p style={{ margin: 0, color: '#d11a2a', fontSize: '14px' }}>
           {errorMessage}
+        </p>
+      ) : null}
+
+      {noticeMessage ? (
+        <p style={{ margin: 0, color: '#19703d', fontSize: '14px' }}>
+          {noticeMessage}
         </p>
       ) : null}
 

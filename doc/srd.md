@@ -286,7 +286,13 @@
 
 - 입력: 현재 비밀번호, 새 비밀번호, 새 비밀번호 확인
 - 처리: 현재 비밀번호 bcrypt 검증 → 새 비밀번호 bcrypt 해싱 → `users.password_hash` 업데이트
-- 출력: 성공/실패 토스트 메시지
+- 출력: 성공/실패 피드백 메시지
+
+**FR-08-1b 사용자 메모(description) 수정**:
+
+- 입력: Description 텍스트 (빈 문자열 허용, 빈 값은 `null` 저장)
+- 처리: `PATCH /api/users/:id`로 `users.description` 업데이트
+- 출력: 저장 성공/실패 피드백 메시지
 
 **FR-08-2 데이터 백업 (JSON Export)**:
 
