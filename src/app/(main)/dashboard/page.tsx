@@ -44,14 +44,5 @@ export default async function DashboardPage() {
     initialData = undefined;
   }
 
-  return (
-    <main
-      style={{
-        minHeight: '100dvh',
-        padding: '24px',
-      }}
-    >
-      <DashboardClient initialData={initialData} />
-    </main>
-  );
+  return <DashboardClient initialData={initialData} />;
 }

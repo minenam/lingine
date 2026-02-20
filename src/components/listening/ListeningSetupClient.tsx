@@ -39,8 +39,6 @@ export default function ListeningSetupClient({ dayRecordId }: Props) {
   return (
     <section
       style={{
-        maxWidth: '480px',
-        margin: '0 auto',
         display: 'grid',
         gap: '14px',
       }}
