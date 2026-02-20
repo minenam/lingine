@@ -20,15 +20,15 @@
 
 ### Type
 
-| type | 용도 |
-|------|------|
-| `feat` | 새 기능 |
-| `fix` | 버그 수정 |
-| `docs` | 문서 변경 |
-| `style` | 포맷팅 (코드 동작 변경 없음) |
-| `refactor` | 리팩토링 |
-| `test` | 테스트 추가/수정 |
-| `chore` | 빌드, 설정, 의존성 등 |
+| type       | 용도                         |
+| ---------- | ---------------------------- |
+| `feat`     | 새 기능                      |
+| `fix`      | 버그 수정                    |
+| `docs`     | 문서 변경                    |
+| `style`    | 포맷팅 (코드 동작 변경 없음) |
+| `refactor` | 리팩토링                     |
+| `test`     | 테스트 추가/수정             |
+| `chore`    | 빌드, 설정, 의존성 등        |
 
 ### Scope
 
@@ -58,11 +58,11 @@ chore(deps): Upgrade next to 15.x
 
 ### Prefix
 
-| prefix | 용도 |
-|--------|------|
-| `feat/` | 새 기능 |
-| `fix/` | 버그 수정 |
-| `docs/` | 문서 변경 |
+| prefix   | 용도            |
+| -------- | --------------- |
+| `feat/`  | 새 기능         |
+| `fix/`   | 버그 수정       |
+| `docs/`  | 문서 변경       |
 | `chore/` | 설정, 의존성 등 |
 
 ### 예시
@@ -84,11 +84,11 @@ chore/eslint-setup
 
 ### 도구
 
-| 도구 | 역할 |
-|------|------|
-| **ESLint** | 코드 품질 검사 (`next/core-web-vitals` + `next/typescript`) |
-| **Prettier** | 코드 포맷팅 |
-| **husky** + **lint-staged** | 커밋 시 자동 lint/format 실행 |
+| 도구                        | 역할                                                        |
+| --------------------------- | ----------------------------------------------------------- |
+| **ESLint**                  | 코드 품질 검사 (`next/core-web-vitals` + `next/typescript`) |
+| **Prettier**                | 코드 포맷팅                                                 |
+| **husky** + **lint-staged** | 커밋 시 자동 lint/format 실행                               |
 
 ### Prettier 설정
 
@@ -99,7 +99,7 @@ chore/eslint-setup
   "singleQuote": true,
   "tabWidth": 2,
   "trailingComma": "all",
-  "printWidth": 80
+  "printWidth": 80,
 }
 ```
 
@@ -109,24 +109,34 @@ chore/eslint-setup
 // .lintstagedrc
 {
   "*.{ts,tsx}": ["eslint --fix", "prettier --write"],
-  "*.{json,md}": ["prettier --write"]
+  "*.{json,md}": ["prettier --write"],
 }
 ```
+
+### Husky pre-commit
+
+```sh
+pnpm stabilize:next-env
+git add next-env.d.ts
+pnpm lint-staged
+```
+
+- `next-env.d.ts`의 `./.next/dev/types/routes.d.ts` 경로를 `./.next/types/routes.d.ts`로 커밋 전 정규화해 불필요한 diff를 줄인다.
 
 ---
 
 ## 4. Naming Convention
 
-| 대상 | 규칙 | 예시 |
-|------|------|------|
-| 컴포넌트 파일/폴더 | PascalCase | `DictationInput.tsx` |
-| 유틸/훅/API 파일 | camelCase | `useAutoSave.ts`, `scoreCalculator.ts` |
-| API 라우트 폴더 | kebab-case | `app/api/dictation-sessions/route.ts` |
-| 변수/함수 | camelCase | `totalScore`, `calculateLCS()` |
-| 타입/인터페이스 | PascalCase | `DictationSession`, `ScoreResult` |
-| 상수 | UPPER_SNAKE_CASE | `MAX_FILE_SIZE`, `JWT_EXPIRY` |
-| DB 컬럼 | snake_case | `average_score`, `created_at` |
-| CSS 클래스 | kebab-case 또는 Tailwind | `card-wrapper`, `text-primary` |
+| 대상               | 규칙                     | 예시                                   |
+| ------------------ | ------------------------ | -------------------------------------- |
+| 컴포넌트 파일/폴더 | PascalCase               | `DictationInput.tsx`                   |
+| 유틸/훅/API 파일   | camelCase                | `useAutoSave.ts`, `scoreCalculator.ts` |
+| API 라우트 폴더    | kebab-case               | `app/api/dictation-sessions/route.ts`  |
+| 변수/함수          | camelCase                | `totalScore`, `calculateLCS()`         |
+| 타입/인터페이스    | PascalCase               | `DictationSession`, `ScoreResult`      |
+| 상수               | UPPER_SNAKE_CASE         | `MAX_FILE_SIZE`, `JWT_EXPIRY`          |
+| DB 컬럼            | snake_case               | `average_score`, `created_at`          |
+| CSS 클래스         | kebab-case 또는 Tailwind | `card-wrapper`, `text-primary`         |
 
 ---
 
@@ -185,10 +195,10 @@ src/
 
 ## 7. 테스트
 
-| 도구 | 용도 | 시기 |
-|------|------|------|
-| **Vitest** | 유닛/통합 테스트 (채점 로직, API 등) | MVP |
-| **Playwright** | E2E 테스트 | 추후 |
+| 도구           | 용도                                 | 시기 |
+| -------------- | ------------------------------------ | ---- |
+| **Vitest**     | 유닛/통합 테스트 (채점 로직, API 등) | MVP  |
+| **Playwright** | E2E 테스트                           | 추후 |
 
 ### 테스트 파일 위치
 

@@ -221,7 +221,7 @@ export default function DictationEditor({ sessionId }: Props) {
     };
 
     void saveDifficulty();
-  }, [difficulty, sessionId]);
+  }, [difficulty, sessionId, status]);
 
   useEffect(() => {
     if (!isHydratedRef.current) {
