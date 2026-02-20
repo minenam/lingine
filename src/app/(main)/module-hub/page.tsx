@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 
-import BottomNav from '@/components/layout/BottomNav';
 import ModuleHubClient from '@/components/module-hub/ModuleHubClient';
 import { getAuthUser } from '@/lib/auth';
 
@@ -21,16 +20,5 @@ export default async function ModuleHubPage({
 
   const params = await searchParams;
 
-  return (
-    <main
-      style={{
-        minHeight: '100dvh',
-        padding: '24px',
-        paddingBottom: '92px',
-      }}
-    >
-      <ModuleHubClient initialDate={params.date} />
-      <BottomNav active="home" />
-    </main>
-  );
+  return <ModuleHubClient initialDate={params.date} />;
 }

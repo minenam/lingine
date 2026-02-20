@@ -375,7 +375,7 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
   }
 
   return (
-    <section style={{ maxWidth: '760px', margin: '0 auto', width: '100%' }}>
+    <section style={{ width: '100%' }}>
       <button
         type="button"
         onClick={() => router.back()}

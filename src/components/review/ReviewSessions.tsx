@@ -89,7 +89,7 @@ export default function ReviewSessions() {
   }, [queryString]);
 
   return (
-    <section style={{ maxWidth: '860px', margin: '0 auto', width: '100%' }}>
+    <section style={{ width: '100%' }}>
       <header style={{ display: 'grid', gap: '6px' }}>
         <button
           type="button"

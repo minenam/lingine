@@ -1,18 +1,22 @@
 'use client';
 
 import { BookOpen, House, Settings } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-
-type BottomNavProps = {
-  active: 'home' | 'review' | 'settings';
-};
+import { usePathname, useRouter } from 'next/navigation';
 
 function getNavColor(isActive: boolean) {
   return isActive ? '#111' : '#888';
 }
 
-export default function BottomNav({ active }: BottomNavProps) {
+function resolveActive(pathname: string): 'home' | 'review' | 'settings' {
+  if (pathname.startsWith('/review')) return 'review';
+  if (pathname.startsWith('/settings')) return 'settings';
+  return 'home';
+}
+
+export default function BottomNav() {
   const router = useRouter();
+  const pathname = usePathname();
+  const active = resolveActive(pathname);
 
   return (
     <nav

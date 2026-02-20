@@ -3,7 +3,6 @@
 import { Menu, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-import BottomNav from '@/components/layout/BottomNav';
 import { toDateOnlyString } from '@/lib/dateUtils';
 
 import CalendarCard from './CalendarCard';
@@ -56,9 +55,6 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
     <section
       style={{
         width: '100%',
-        maxWidth: '480px',
-        margin: '0 auto',
-        paddingBottom: '92px',
         display: 'grid',
         gap: '14px',
       }}
@@ -129,8 +125,6 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
         isTodayDone={isTodayDone}
         onStartLearning={handleStartLearning}
       />
-
-      <BottomNav active="home" />
     </section>
   );
 }

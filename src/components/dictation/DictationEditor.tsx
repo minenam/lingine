@@ -276,7 +276,7 @@ export default function DictationEditor({ sessionId }: Props) {
       : null;
 
   return (
-    <section style={{ maxWidth: '760px', margin: '0 auto', width: '100%' }}>
+    <section style={{ width: '100%' }}>
       <header
         style={{
           display: 'flex',
