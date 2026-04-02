@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 type ReviewSession = {
@@ -27,11 +27,24 @@ type FilterType = 'all' | 'incorrect' | 'hard' | 'med' | 'easy';
 
 export default function ReviewSessions() {
   const router = useRouter();
+  const hasLoadedOnceRef = useRef(false);
   const [sessions, setSessions] = useState<ReviewSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('all');
   const [keyword, setKeyword] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [reloadToken, setReloadToken] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedKeyword(keyword.trim());
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [keyword]);
 
   const queryString = useMemo(() => {
     const query = new URLSearchParams();
@@ -47,46 +60,57 @@ export default function ReviewSessions() {
       query.set('difficulty', filter);
     }
 
-    const trimmedKeyword = keyword.trim();
-    if (trimmedKeyword.length > 0) {
-      query.set('keyword', trimmedKeyword);
+    if (debouncedKeyword.length > 0) {
+      query.set('keyword', debouncedKeyword);
     }
 
     return query.toString();
-  }, [filter, keyword]);
+  }, [debouncedKeyword, filter]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const run = async () => {
+    let isMounted = true;
+
+    const run = async () => {
+      if (!hasLoadedOnceRef.current) {
         setIsLoading(true);
+      }
 
-        try {
-          const response = await fetch(
-            `/api/dictation-sessions?${queryString}`,
-          );
-          const data = (await response.json()) as ReviewResponse;
+      try {
+        const response = await fetch(`/api/dictation-sessions?${queryString}`);
+        const data = (await response.json()) as ReviewResponse;
 
-          if (!response.ok) {
-            throw new Error('Failed to load sessions');
-          }
-
-          setSessions(data.sessions ?? []);
-          setErrorMessage('');
-        } catch {
-          setSessions([]);
-          setErrorMessage('리뷰 목록을 불러오지 못했습니다.');
-        } finally {
-          setIsLoading(false);
+        if (!response.ok) {
+          throw new Error('Failed to load sessions');
         }
-      };
 
-      void run();
-    }, 300);
+        if (!isMounted) {
+          return;
+        }
+
+        setSessions(data.sessions ?? []);
+        setErrorMessage('');
+      } catch {
+        if (!isMounted) {
+          return;
+        }
+
+        setErrorMessage(
+          '최신 데이터를 불러오지 못했습니다. 이전 데이터를 표시 중입니다.',
+        );
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+          hasLoadedOnceRef.current = true;
+        }
+      }
+    };
+
+    void run();
 
     return () => {
-      clearTimeout(timer);
+      isMounted = false;
     };
-  }, [queryString]);
+  }, [queryString, reloadToken]);
 
   return (
     <section style={{ width: '100%' }}>
@@ -153,9 +177,36 @@ export default function ReviewSessions() {
       </div>
 
       {isLoading ? <p>Loading...</p> : null}
-      {errorMessage ? <p style={{ color: '#cf2e2e' }}>{errorMessage}</p> : null}
+      {errorMessage ? (
+        <div
+          style={{
+            marginTop: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+          }}
+        >
+          <p style={{ margin: 0, color: '#cf2e2e' }}>{errorMessage}</p>
+          <button
+            type="button"
+            onClick={() => setReloadToken((prev) => prev + 1)}
+            style={{
+              border: '1px solid #ddd',
+              background: '#fff',
+              borderRadius: '999px',
+              padding: '6px 12px',
+              color: '#111',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            다시 시도
+          </button>
+        </div>
+      ) : null}
 
-      {!isLoading && !errorMessage ? (
+      {!isLoading ? (
         <ul
           style={{
             margin: '16px 0 0',

@@ -15,6 +15,7 @@ type CalendarCardProps = {
   onViewModeChange: (mode: 'weekly' | 'monthly') => void;
   onMonthMove: (direction: -1 | 1) => void;
   onDateSelect: (date: Date) => void;
+  onRetry: () => void;
 };
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -42,6 +43,7 @@ export default function CalendarCard({
   onViewModeChange,
   onMonthMove,
   onDateSelect,
+  onRetry,
 }: CalendarCardProps) {
   return (
     <article
@@ -155,10 +157,34 @@ export default function CalendarCard({
         <p style={{ margin: 0, color: '#666' }}>Loading...</p>
       ) : null}
       {errorMessage ? (
-        <p style={{ margin: 0, color: '#cf2e2e' }}>{errorMessage}</p>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+          }}
+        >
+          <p style={{ margin: 0, color: '#cf2e2e' }}>{errorMessage}</p>
+          <button
+            type="button"
+            onClick={onRetry}
+            style={{
+              border: '1px solid #ddd',
+              background: '#fff',
+              borderRadius: '999px',
+              padding: '6px 12px',
+              color: '#111',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            다시 시도
+          </button>
+        </div>
       ) : null}
 
-      {!isLoading && !errorMessage ? (
+      {!isLoading ? (
         <div
           style={{
             display: 'grid',
