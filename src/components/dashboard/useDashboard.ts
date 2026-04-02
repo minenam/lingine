@@ -48,6 +48,7 @@ function calculateMonthlyAverage(dayRecords: DayRecord[]): number | null {
 export function useDashboard(initialData?: InitialData) {
   const today = useMemo(() => new Date(), []);
   const skipInitialFetch = useRef(Boolean(initialData));
+  const hasLoadedOnceRef = useRef(Boolean(initialData));
 
   const [viewMode, setViewMode] = useState<ViewMode>('weekly');
   const [focusDate, setFocusDate] = useState<Date>(today);
@@ -59,6 +60,7 @@ export function useDashboard(initialData?: InitialData) {
   const [monthlyAverageScore, setMonthlyAverageScore] = useState<number | null>(
     initialData?.monthlyAverageScore ?? null,
   );
+  const [reloadToken, setReloadToken] = useState(0);
 
   const monthStart = useMemo(() => startOfMonth(focusDate), [focusDate]);
   const monthEnd = useMemo(() => endOfMonth(focusDate), [focusDate]);
@@ -85,61 +87,60 @@ export function useDashboard(initialData?: InitialData) {
     }
 
     let isMounted = true;
-
-    const timer = setTimeout(() => {
-      const run = async () => {
+    const run = async () => {
+      if (!hasLoadedOnceRef.current) {
         setIsLoading(true);
+      }
 
-        try {
-          const query = new URLSearchParams({
-            from: toDateOnlyString(monthStart),
-            to: toDateOnlyString(monthEnd),
-          });
+      try {
+        const query = new URLSearchParams({
+          from: toDateOnlyString(monthStart),
+          to: toDateOnlyString(monthEnd),
+        });
 
-          const response = await fetch(`/api/day-records?${query.toString()}`);
+        const response = await fetch(`/api/day-records?${query.toString()}`);
 
-          if (!response.ok) {
-            throw new Error('Failed to load dashboard data');
-          }
-
-          const data = (await response.json()) as DayRecordsResponse;
-          const records = data.dayRecords ?? [];
-
-          if (!isMounted) {
-            return;
-          }
-
-          setDayRecords(records);
-          setMonthlyAverageScore(
-            typeof data.monthlyAverageScore === 'number'
-              ? data.monthlyAverageScore
-              : calculateMonthlyAverage(records),
-          );
-          setErrorMessage('');
-        } catch (error) {
-          if (!isMounted) {
-            return;
-          }
-
-          console.error('Failed to load dashboard data:', error);
-          setDayRecords([]);
-          setMonthlyAverageScore(null);
-          setErrorMessage('대시보드 데이터를 불러오지 못했습니다.');
-        } finally {
-          if (isMounted) {
-            setIsLoading(false);
-          }
+        if (!response.ok) {
+          throw new Error('Failed to load dashboard data');
         }
-      };
 
-      void run();
-    }, 300);
+        const data = (await response.json()) as DayRecordsResponse;
+        const records = data.dayRecords ?? [];
+
+        if (!isMounted) {
+          return;
+        }
+
+        setDayRecords(records);
+        setMonthlyAverageScore(
+          typeof data.monthlyAverageScore === 'number'
+            ? data.monthlyAverageScore
+            : calculateMonthlyAverage(records),
+        );
+        setErrorMessage('');
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        console.error('Failed to load dashboard data:', error);
+        setErrorMessage(
+          '최신 데이터를 불러오지 못했습니다. 이전 데이터를 표시 중입니다.',
+        );
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+          hasLoadedOnceRef.current = true;
+        }
+      }
+    };
+
+    void run();
 
     return () => {
       isMounted = false;
-      clearTimeout(timer);
     };
-  }, [monthEnd, monthStart]);
+  }, [monthEnd, monthStart, reloadToken]);
 
   return {
     viewMode,
@@ -152,5 +153,6 @@ export function useDashboard(initialData?: InitialData) {
     monthlyAverageScore,
     recordsByDate,
     visibleDates,
+    retry: () => setReloadToken((prev) => prev + 1),
   };
 }

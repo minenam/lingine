@@ -32,6 +32,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
     monthlyAverageScore,
     recordsByDate,
     visibleDates,
+    retry,
   } = useDashboard(initialData);
 
   const todayRecord = recordsByDate[todayString] ?? null;
@@ -117,6 +118,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
         onViewModeChange={setViewMode}
         onMonthMove={handleMonthMove}
         onDateSelect={handleDateSelect}
+        onRetry={retry}
       />
 
       <MonthlyAccuracyCard monthlyAverageScore={monthlyAverageScore} />
