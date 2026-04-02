@@ -90,6 +90,7 @@ firestore-debug.log
 # Debug
 *.tsbuildinfo
 .tsbuildinfo
+next-env.d.ts
 
 # Misc
 *.pid
