@@ -51,8 +51,9 @@
 ### G. PWA 최소 세팅
 
 - [x] `manifest.json` 생성 (`display: standalone`, 앱 이름, 테마색)
+- [x] `start_url: "/dashboard"` 설정 (PWA 실행 시 대시보드 직접 진입, 미인증 시 `/login` redirect)
 - [x] 아이콘 에셋 연결(최소 192/512)
-- [x] App Shell 수준 기본 캐싱 전략 초안 반영
+- [x] Service Worker 캐싱 전략: navigation → Network-First, 정적 자산 → Cache-First
 
 ### H. 실행 스크립트/문서
 
