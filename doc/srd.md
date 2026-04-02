@@ -378,8 +378,10 @@
 
 ### NFR-03 PWA
 
-- `manifest.json`: `display: standalone`, 앱 아이콘, 테마 색상 (Dark Navy #1A1A2E)
-- Service Worker: 정적 자산 캐싱 (App Shell 패턴)
+- `manifest.json`: `display: standalone`, `start_url: "/dashboard"`, 앱 아이콘, 테마 색상 (Dark Navy #1A1A2E)
+- Service Worker 캐싱 전략:
+  - **Navigation 요청(HTML 페이지)**: Network-First (네트워크 우선 → 실패 시 캐시 fallback)
+  - **정적 자산(JS, CSS, 이미지 등)**: Cache-First (캐시 우선 → 미스 시 네트워크 fetch 후 캐싱)
 - 오프라인: 기본 UI skeleton 표시 (데이터 기능은 온라인 필수)
 
 ### NFR-04 호환성
