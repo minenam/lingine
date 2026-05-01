@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { getAuthUser } from '@/lib/auth';
+import { noStoreJson } from '@/lib/apiResponse';
 import { AppError, ERROR_CODES, toErrorResponse } from '@/lib/errors';
 import { getSupabaseAdmin } from '@/lib/supabase';
 
@@ -315,7 +316,7 @@ export async function GET(request: Request) {
       fileType: row.file_type,
     }));
 
-    return NextResponse.json({ audioSources });
+    return noStoreJson({ audioSources });
   } catch (error) {
     const { error: apiError, status } = toErrorResponse(error);
     return NextResponse.json({ error: apiError }, { status });

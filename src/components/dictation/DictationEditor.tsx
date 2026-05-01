@@ -24,9 +24,25 @@ type Props = {
   sessionId: string;
 };
 
+type SessionUpdatePayload = {
+  userInput?: string | null;
+  difficulty?: 'easy' | 'med' | 'hard';
+  keyword?: string | null;
+};
+
 function normalizeKeyword(value: string) {
   const trimmed = value.trim();
   return trimmed.length === 0 ? null : trimmed;
+}
+
+function updateSession(sessionId: string, payload: SessionUpdatePayload) {
+  return fetch(`/api/dictation-sessions/${sessionId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
 }
 
 function extractYoutubeVideoId(fileName: string | null) {
@@ -69,6 +85,7 @@ export default function DictationEditor({ sessionId }: Props) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>(
     'idle',
   );
+  const [isMovingToResult, setIsMovingToResult] = useState(false);
 
   const isHydratedRef = useRef(false);
   const latestUserInputRef = useRef<string | null>(null);
@@ -82,7 +99,9 @@ export default function DictationEditor({ sessionId }: Props) {
 
     const run = async () => {
       try {
-        const response = await fetch(`/api/dictation-sessions/${sessionId}`);
+        const response = await fetch(`/api/dictation-sessions/${sessionId}`, {
+          cache: 'no-store',
+        });
         const data = (await response.json()) as SessionDetailResponse;
 
         if (!response.ok || !data.session) {
@@ -144,14 +163,8 @@ export default function DictationEditor({ sessionId }: Props) {
 
       const save = async () => {
         for (let attempt = 1; attempt <= 3; attempt += 1) {
-          const response = await fetch(`/api/dictation-sessions/${sessionId}`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              userInput: payload,
-            }),
+          const response = await updateSession(sessionId, {
+            userInput: payload,
           });
 
           if (response.ok) {
@@ -197,14 +210,8 @@ export default function DictationEditor({ sessionId }: Props) {
     const requestId = difficultyRequestRef.current;
 
     const saveDifficulty = async () => {
-      const response = await fetch(`/api/dictation-sessions/${sessionId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          difficulty,
-        }),
+      const response = await updateSession(sessionId, {
+        difficulty,
       });
 
       if (requestId !== difficultyRequestRef.current) {
@@ -236,14 +243,8 @@ export default function DictationEditor({ sessionId }: Props) {
     const requestId = keywordRequestRef.current;
 
     const saveKeyword = async () => {
-      const response = await fetch(`/api/dictation-sessions/${sessionId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          keyword: normalizeKeyword(keyword),
-        }),
+      const response = await updateSession(sessionId, {
+        keyword: normalizeKeyword(keyword),
       });
 
       if (requestId !== keywordRequestRef.current) {
@@ -261,6 +262,40 @@ export default function DictationEditor({ sessionId }: Props) {
 
     void saveKeyword();
   }, [keyword, sessionId, status]);
+
+  const handleMoveToResult = async () => {
+    if (status === 'completed') {
+      router.push(`/dictation/${sessionId}/result`);
+      return;
+    }
+
+    setIsMovingToResult(true);
+    setErrorMessage('');
+    setSaveState('saving');
+
+    try {
+      const response = await updateSession(sessionId, {
+        userInput,
+        difficulty,
+        keyword: normalizeKeyword(keyword),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save current session before navigation');
+      }
+
+      latestUserInputRef.current = null;
+      lastSavedDifficultyRef.current = difficulty;
+      lastSavedKeywordRef.current = keyword;
+      setSaveState('saved');
+      router.push(`/dictation/${sessionId}/result`);
+    } catch {
+      setSaveState('idle');
+      setErrorMessage('결과로 이동하기 전에 저장에 실패했습니다.');
+    } finally {
+      setIsMovingToResult(false);
+    }
+  };
 
   if (isLoading) {
     return <p>Loading...</p>;
@@ -476,7 +511,10 @@ export default function DictationEditor({ sessionId }: Props) {
 
       <button
         type="button"
-        onClick={() => router.push(`/dictation/${sessionId}/result`)}
+        onClick={() => {
+          void handleMoveToResult();
+        }}
+        disabled={isMovingToResult}
         style={{
           marginTop: '16px',
           width: '100%',
@@ -485,11 +523,12 @@ export default function DictationEditor({ sessionId }: Props) {
           background: '#25a05a',
           color: '#fff',
           padding: '12px 16px',
-          cursor: 'pointer',
+          cursor: isMovingToResult ? 'not-allowed' : 'pointer',
+          opacity: isMovingToResult ? 0.7 : 1,
           fontWeight: 700,
         }}
       >
-        Next
+        {isMovingToResult ? 'Saving...' : 'Next'}
       </button>
 
       {errorMessage ? <p style={{ color: '#cf2e2e' }}>{errorMessage}</p> : null}

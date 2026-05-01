@@ -214,7 +214,7 @@
    - Request Body: 없음 (세션에 저장된 `user_input`, `answer_key` 사용)
    - 채점 로직: 하단 섹션 5 "채점 알고리즘 명세" 참조
    - Response: `{ totalScore, sentenceScores[], feedback }`
-3. 채점 결과를 `dictation_sessions`에 저장 (total_score, status: `completed`)
+3. 채점 결과를 `dictation_sessions.total_score`에 저장하되 세션 상태는 `in_progress` 유지
 4. 문장별 결과를 `sentences` 테이블에 저장
 
 **처리 — PDF Upload**:
@@ -236,7 +236,7 @@
 - "Complete & Save" 버튼 (초록색, 채점 전 비활성화)
 - Result 화면에서도 `keyword` 수정 가능 (nullable, 미입력 시 숨김)
 
-**채점 결과 저장 후**:
+**Complete & Save 후**:
 
 - `day_records` 업데이트: 해당 날짜의 모든 세션 평균 점수를 `average_score`에 반영
 - **day_records.status 전이**: 세션 하나라도 채점 완료(`completed`) 시 day_record도 `completed`로 전환

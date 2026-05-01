@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 
 import { getAuthUser } from '@/lib/auth';
+import { noStoreJson } from '@/lib/apiResponse';
 import { AppError, ERROR_CODES, toErrorResponse } from '@/lib/errors';
+import { recalculateDayRecord } from '@/lib/services/dictationSessions';
 import { mapFeedback, scoreSessionTexts } from '@/lib/services/scoring';
 import { getSupabaseAdmin } from '@/lib/supabase';
 
@@ -66,56 +68,6 @@ async function loadAuthorizedSession(sessionId: string, userId: string) {
   }
 
   return session;
-}
-
-async function recalculateDayRecord(dayRecordId: string) {
-  const supabase = getSupabaseAdmin();
-
-  const { data: sessions, error: sessionError } = await supabase
-    .from('dictation_sessions')
-    .select('status, total_score')
-    .eq('day_record_id', dayRecordId);
-
-  if (sessionError) {
-    throw new AppError(
-      ERROR_CODES.INTERNAL_ERROR,
-      'Failed to recalculate day record score',
-      500,
-    );
-  }
-
-  const completedSessions = (sessions ?? []).filter(
-    (session) =>
-      session.status === 'completed' && typeof session.total_score === 'number',
-  );
-
-  const averageScore =
-    completedSessions.length === 0
-      ? null
-      : Math.round(
-          completedSessions.reduce(
-            (sum, session) => sum + (session.total_score ?? 0),
-            0,
-          ) / completedSessions.length,
-        );
-
-  const status = completedSessions.length > 0 ? 'completed' : 'pending';
-
-  const { error: updateDayRecordError } = await supabase
-    .from('day_records')
-    .update({
-      average_score: averageScore,
-      status,
-    })
-    .eq('id', dayRecordId);
-
-  if (updateDayRecordError) {
-    throw new AppError(
-      ERROR_CODES.INTERNAL_ERROR,
-      'Failed to update day record score',
-      500,
-    );
-  }
 }
 
 export async function POST(
@@ -189,7 +141,6 @@ export async function POST(
       .from('dictation_sessions')
       .update({
         total_score: result.totalScore,
-        status: 'completed',
         updated_at: new Date().toISOString(),
       })
       .eq('id', session.id);
@@ -202,8 +153,6 @@ export async function POST(
       );
     }
 
-    await recalculateDayRecord(session.day_record_id);
-
     return NextResponse.json(
       {
         result: {
@@ -211,6 +160,8 @@ export async function POST(
           feedback: result.feedback,
           sentenceScores: result.sentenceScores.map((sentence) => ({
             sentenceIndex: sentence.sentenceIndex,
+            userText: sentence.userText,
+            answerText: sentence.answerText,
             score: sentence.score,
           })),
         },
@@ -231,14 +182,6 @@ export async function GET(
     const authUser = await getAuthUser();
     const { id } = await params;
     const session = await loadAuthorizedSession(id, authUser.userId);
-
-    if (session.status === 'completed') {
-      throw new AppError(
-        ERROR_CODES.VALIDATION_ERROR,
-        'Completed sessions cannot reset scores',
-        400,
-      );
-    }
 
     if (session.total_score === null) {
       throw new AppError(ERROR_CODES.NOT_FOUND, 'Score not found', 404);
@@ -261,7 +204,7 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({
+    return noStoreJson({
       result: {
         totalScore: session.total_score,
         feedback: mapFeedback(session.total_score),
@@ -287,6 +230,14 @@ export async function DELETE(
     const authUser = await getAuthUser();
     const { id } = await params;
     const session = await loadAuthorizedSession(id, authUser.userId);
+
+    if (session.status === 'completed') {
+      throw new AppError(
+        ERROR_CODES.VALIDATION_ERROR,
+        'Completed sessions cannot reset scores',
+        400,
+      );
+    }
 
     const supabase = getSupabaseAdmin();
 

@@ -76,7 +76,9 @@ export default function ReviewSessions() {
       }
 
       try {
-        const response = await fetch(`/api/dictation-sessions?${queryString}`);
+        const response = await fetch(`/api/dictation-sessions?${queryString}`, {
+          cache: 'no-store',
+        });
         const data = (await response.json()) as ReviewResponse;
 
         if (!response.ok) {

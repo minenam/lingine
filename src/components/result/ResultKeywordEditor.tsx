@@ -38,6 +38,16 @@ type ScoreResponse = {
   };
 };
 
+type SessionPatchResponse = {
+  session?: {
+    totalScore?: number | null;
+    status?: 'in_progress' | 'completed';
+  };
+  error?: {
+    message?: string;
+  };
+};
+
 type Props = {
   sessionId: string;
 };
@@ -144,7 +154,9 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
 
     const run = async () => {
       try {
-        const response = await fetch(`/api/dictation-sessions/${sessionId}`);
+        const response = await fetch(`/api/dictation-sessions/${sessionId}`, {
+          cache: 'no-store',
+        });
         const data = (await response.json()) as SessionDetailResponse;
 
         if (!response.ok || !data.session) {
@@ -267,7 +279,9 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
   };
 
   const refreshScoreResult = async () => {
-    const response = await fetch(`/api/dictation-sessions/${sessionId}/score`);
+    const response = await fetch(`/api/dictation-sessions/${sessionId}/score`, {
+      cache: 'no-store',
+    });
     const payload = (await response.json()) as
       | ScoreResponse
       | { error?: { message?: string } };
@@ -280,7 +294,6 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
 
     setTotalScore(payload.result.totalScore);
     setSentenceScores(payload.result.sentenceScores);
-    setStatus('completed');
   };
 
   const checkAnswer = async () => {
@@ -326,7 +339,9 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
       }
 
       await refreshScoreResult();
-      setSuccessMessage('채점이 완료되었습니다.');
+      setSuccessMessage(
+        '채점 결과를 확인했습니다. 완료하려면 Complete & Save를 누르세요.',
+      );
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : '채점에 실패했습니다.',
@@ -337,7 +352,7 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
   };
 
   const completeAndSave = async () => {
-    if (totalScore === null) {
+    if (totalScore === null || isCompletedLocked) {
       return;
     }
 
@@ -351,17 +366,20 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
         body: JSON.stringify({
           difficulty,
           keyword: normalizeKeyword(keyword),
+          status: 'completed',
         }),
       });
 
-      const payload = (await response.json()) as unknown;
+      const payload = (await response.json()) as SessionPatchResponse;
 
       if (!response.ok) {
         throw new Error(parseApiErrorMessage(payload, '저장에 실패했습니다.'));
       }
 
+      setStatus(payload.session?.status ?? 'completed');
+      setTotalScore(payload.session?.totalScore ?? totalScore);
       setSuccessMessage(
-        '결과를 저장했습니다. 이 화면에서 계속 확인할 수 있습니다.',
+        '완료 저장했습니다. 이 화면에서 계속 확인할 수 있습니다.',
       );
     } catch (error) {
       setErrorMessage(
@@ -635,7 +653,7 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
         onClick={() => {
           void completeAndSave();
         }}
-        disabled={totalScore === null}
+        disabled={totalScore === null || isCompletedLocked}
         style={{
           marginTop: '14px',
           width: '100%',
@@ -644,8 +662,11 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
           background: '#25a05a',
           color: '#fff',
           padding: '12px 16px',
-          cursor: totalScore === null ? 'not-allowed' : 'pointer',
-          opacity: totalScore === null ? 0.6 : 1,
+          cursor:
+            totalScore === null || isCompletedLocked
+              ? 'not-allowed'
+              : 'pointer',
+          opacity: totalScore === null || isCompletedLocked ? 0.6 : 1,
           fontWeight: 700,
         }}
       >

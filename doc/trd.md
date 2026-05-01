@@ -441,13 +441,15 @@ Dictation 세션 수정
 {
   "userInput": "updated text...",
   "difficulty": "hard",
-  "keyword": "cut sth in half"
+  "keyword": "cut sth in half",
+  "status": "completed"
 }
 ```
 
 - `userInput`: 자동 저장 (debounce 3초, 실패 시 3초 간격 최대 3회 조용히 재시도)
 - `difficulty`: 난이도 변경 (완료 상태에서도 수정 가능)
 - `keyword`: nullable 키워드 수정 (완료 상태에서도 수정 가능)
+- `status`: `completed`만 허용. `totalScore`가 있어야 완료 가능하며 완료 시 day record 집계 반영
 - 완료 세션(`status=completed`)은 `difficulty`, `keyword` 외 필드 수정 불가
 
 **Response (200):**
@@ -459,6 +461,8 @@ Dictation 세션 수정
     "userInput": "updated text...",
     "difficulty": "hard",
     "keyword": "cut sth in half",
+    "totalScore": 92,
+    "status": "completed",
     "updatedAt": "2026-02-13T09:05:00Z"
   }
 }
@@ -527,8 +531,7 @@ Dictation 세션 수정
 - 내부적으로 `userInput`과 `answerKey`를 사용하여 채점 알고리즘(섹션 3) 실행
 - `keyword`는 메타데이터 필드이며 채점 입력에 포함하지 않음
 - 결과를 `dictation_sessions` + `sentences` 테이블에 저장
-- `day_records.average_score` 업데이트 (해당 날짜 전체 세션 평균)
-- **day_records.status 전이**: 세션 하나라도 채점 완료 시 `completed`로 전환
+- 세션 상태는 `in_progress` 유지. 최종 완료 및 day record 집계는 `Complete & Save`에서 처리
 - `answerKey`가 비어있으면 `SCORING_ERROR` (422) 반환
 - 완료 세션(`status=completed`)은 재채점 불가 (`VALIDATION_ERROR`, 400)
 
@@ -544,8 +547,18 @@ Dictation 세션 수정
       "sub": "Almost perfect!"
     },
     "sentenceScores": [
-      { "sentenceIndex": 1, "score": 92 },
-      { "sentenceIndex": 2, "score": 100 }
+      {
+        "sentenceIndex": 1,
+        "userText": "...",
+        "answerText": "...",
+        "score": 92
+      },
+      {
+        "sentenceIndex": 2,
+        "userText": "...",
+        "answerText": "...",
+        "score": 100
+      }
     ]
   }
 }

@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { getAuthUser } from '@/lib/auth';
+import { noStoreJson } from '@/lib/apiResponse';
 import { AppError, ERROR_CODES, toErrorResponse } from '@/lib/errors';
+import { recalculateDayRecord } from '@/lib/services/dictationSessions';
 import { getSupabaseAdmin } from '@/lib/supabase';
 
 const updateSessionBodySchema = z
@@ -10,12 +12,14 @@ const updateSessionBodySchema = z
     userInput: z.string().nullable().optional(),
     difficulty: z.enum(['easy', 'med', 'hard']).optional(),
     keyword: z.string().trim().max(255).nullable().optional(),
+    status: z.literal('completed').optional(),
   })
   .refine(
     (value) =>
       value.userInput !== undefined ||
       value.difficulty !== undefined ||
-      value.keyword !== undefined,
+      value.keyword !== undefined ||
+      value.status !== undefined,
     {
       message: 'At least one field must be provided',
     },
@@ -154,7 +158,7 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({
+    return noStoreJson({
       session: {
         id: session.id,
         dayRecordId: session.day_record_id,
@@ -231,12 +235,24 @@ export async function PATCH(
       }
     }
 
+    const shouldComplete =
+      parsedBody.data.status === 'completed' && session.status !== 'completed';
+
+    if (shouldComplete && session.total_score === null) {
+      throw new AppError(
+        ERROR_CODES.VALIDATION_ERROR,
+        'Score is required before completing session',
+        400,
+      );
+    }
+
     const normalizedKeyword = normalizeKeyword(parsedBody.data.keyword);
 
     const updatePayload: {
       user_input?: string | null;
       difficulty?: 'easy' | 'med' | 'hard';
       keyword?: string | null;
+      status?: 'completed';
       updated_at: string;
     } = {
       updated_at: new Date().toISOString(),
@@ -254,18 +270,26 @@ export async function PATCH(
       updatePayload.keyword = normalizedKeyword;
     }
 
+    if (parsedBody.data.status !== undefined) {
+      updatePayload.status = parsedBody.data.status;
+    }
+
     const supabase = getSupabaseAdmin();
 
     const { data: updatedSession, error: updateError } = await supabase
       .from('dictation_sessions')
       .update(updatePayload)
       .eq('id', id)
-      .select('id, user_input, difficulty, keyword, updated_at')
+      .select(
+        'id, user_input, difficulty, keyword, total_score, status, updated_at',
+      )
       .single<{
         id: string;
         user_input: string | null;
         difficulty: 'easy' | 'med' | 'hard';
         keyword: string | null;
+        total_score: number | null;
+        status: 'in_progress' | 'completed';
         updated_at: string;
       }>();
 
@@ -277,12 +301,18 @@ export async function PATCH(
       );
     }
 
+    if (shouldComplete) {
+      await recalculateDayRecord(session.day_record_id);
+    }
+
     return NextResponse.json({
       session: {
         id: updatedSession.id,
         userInput: updatedSession.user_input,
         difficulty: updatedSession.difficulty,
         keyword: updatedSession.keyword,
+        totalScore: updatedSession.total_score,
+        status: updatedSession.status,
         updatedAt: updatedSession.updated_at,
       },
     });

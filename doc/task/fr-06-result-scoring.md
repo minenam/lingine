@@ -23,12 +23,12 @@
 - [x] 문장 매칭 규칙 구현(부족분 빈 문자열, 초과분 무시)
 - [x] LCS 기반 문장 점수 계산 구현
 - [x] 총점/피드백 매핑 구현
-- [x] sentence 결과 저장 + session 점수/상태 갱신
+- [x] sentence 결과 저장 + session 점수 갱신(`Check Answer`는 `in_progress` 유지)
 
 ### D. 일자 집계 연동
 
-- [x] 채점 후 `day_records.average_score` 재계산
-- [x] 채점 완료 세션 존재 시 `day_records.status=completed` 반영
+- [x] `Complete & Save` 후 `day_records.average_score` 재계산
+- [x] 완료 세션 존재 시 `day_records.status=completed` 반영
 - [x] 점수 삭제 시 day_record 재계산 복원
 
 ### E. Result UI
