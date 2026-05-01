@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { getAuthUser } from '@/lib/auth';
+import { noStoreJson } from '@/lib/apiResponse';
 import { AppError, ERROR_CODES, toErrorResponse } from '@/lib/errors';
 import {
   createDictationSession,
@@ -72,7 +73,7 @@ export async function GET(request: Request) {
       dayRecordId: parsedQuery.data.dayRecordId,
     });
 
-    return NextResponse.json({
+    return noStoreJson({
       sessions: result.sessions,
       pagination: result.pagination,
     });

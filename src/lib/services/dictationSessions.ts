@@ -45,6 +45,56 @@ type SessionSummary = {
   previewText: string;
 };
 
+export async function recalculateDayRecord(dayRecordId: string) {
+  const supabase = getSupabaseAdmin();
+
+  const { data: sessions, error: sessionError } = await supabase
+    .from('dictation_sessions')
+    .select('status, total_score')
+    .eq('day_record_id', dayRecordId);
+
+  if (sessionError) {
+    throw new AppError(
+      ERROR_CODES.INTERNAL_ERROR,
+      'Failed to recalculate day record score',
+      500,
+    );
+  }
+
+  const completedSessions = (sessions ?? []).filter(
+    (session) =>
+      session.status === 'completed' && typeof session.total_score === 'number',
+  );
+
+  const averageScore =
+    completedSessions.length === 0
+      ? null
+      : Math.round(
+          completedSessions.reduce(
+            (sum, session) => sum + (session.total_score ?? 0),
+            0,
+          ) / completedSessions.length,
+        );
+
+  const status = completedSessions.length > 0 ? 'completed' : 'pending';
+
+  const { error: updateDayRecordError } = await supabase
+    .from('day_records')
+    .update({
+      average_score: averageScore,
+      status,
+    })
+    .eq('id', dayRecordId);
+
+  if (updateDayRecordError) {
+    throw new AppError(
+      ERROR_CODES.INTERNAL_ERROR,
+      'Failed to update day record score',
+      500,
+    );
+  }
+}
+
 export function normalizeKeyword(keyword: string | null | undefined) {
   if (keyword == null) {
     return null;

@@ -82,6 +82,9 @@ export function useModuleHub(selectedDate: string) {
 
         const dayRecordResponse = await fetch(
           `/api/day-records?${query.toString()}`,
+          {
+            cache: 'no-store',
+          },
         );
         const dayRecordData =
           (await dayRecordResponse.json()) as DayRecordsResponse;
@@ -119,6 +122,9 @@ export function useModuleHub(selectedDate: string) {
 
         const sessionsResponse = await fetch(
           `/api/dictation-sessions?${sessionsQuery.toString()}`,
+          {
+            cache: 'no-store',
+          },
         );
         const sessionsData =
           (await sessionsResponse.json()) as SessionsResponse;

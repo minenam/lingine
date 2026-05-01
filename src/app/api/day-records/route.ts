@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { getAuthUser } from '@/lib/auth';
+import { noStoreJson } from '@/lib/apiResponse';
 import { AppError, ERROR_CODES, toErrorResponse } from '@/lib/errors';
 import { getSupabaseAdmin } from '@/lib/supabase';
 
@@ -81,7 +82,7 @@ export async function GET(request: Request) {
 
     const records = dayRecords ?? [];
 
-    return NextResponse.json({
+    return noStoreJson({
       dayRecords: records.map((dayRecord) => ({
         id: dayRecord.id,
         date: dayRecord.date,

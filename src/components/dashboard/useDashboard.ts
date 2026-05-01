@@ -47,7 +47,6 @@ function calculateMonthlyAverage(dayRecords: DayRecord[]): number | null {
 
 export function useDashboard(initialData?: InitialData) {
   const today = useMemo(() => new Date(), []);
-  const skipInitialFetch = useRef(Boolean(initialData));
   const hasLoadedOnceRef = useRef(Boolean(initialData));
 
   const [viewMode, setViewMode] = useState<ViewMode>('weekly');
@@ -81,11 +80,6 @@ export function useDashboard(initialData?: InitialData) {
   }, [focusDate, viewMode]);
 
   useEffect(() => {
-    if (skipInitialFetch.current) {
-      skipInitialFetch.current = false;
-      return;
-    }
-
     let isMounted = true;
     const run = async () => {
       if (!hasLoadedOnceRef.current) {
@@ -98,7 +92,9 @@ export function useDashboard(initialData?: InitialData) {
           to: toDateOnlyString(monthEnd),
         });
 
-        const response = await fetch(`/api/day-records?${query.toString()}`);
+        const response = await fetch(`/api/day-records?${query.toString()}`, {
+          cache: 'no-store',
+        });
 
         if (!response.ok) {
           throw new Error('Failed to load dashboard data');

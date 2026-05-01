@@ -47,6 +47,9 @@ export function useListeningSetup(dayRecordId: string) {
       try {
         const res = await fetch(
           `/api/audio-sources?dayRecordId=${encodeURIComponent(dayRecordId)}`,
+          {
+            cache: 'no-store',
+          },
         );
         const data: FetchResponse = await res.json();
 
