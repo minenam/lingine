@@ -111,6 +111,7 @@ async function handleManualAnswerUpload(request: Request, sessionId: string) {
     .from('dictation_sessions')
     .update({
       answer_key: parsed.data.answerKey,
+      total_score: null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', sessionId)
@@ -125,6 +126,19 @@ async function handleManualAnswerUpload(request: Request, sessionId: string) {
     throw new AppError(
       ERROR_CODES.INTERNAL_ERROR,
       'Failed to save answer key',
+      500,
+    );
+  }
+
+  const { error: deleteSentenceError } = await supabase
+    .from('sentences')
+    .delete()
+    .eq('session_id', sessionId);
+
+  if (deleteSentenceError) {
+    throw new AppError(
+      ERROR_CODES.INTERNAL_ERROR,
+      'Failed to reset previous score sentences',
       500,
     );
   }

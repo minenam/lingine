@@ -191,12 +191,15 @@ export async function GET(
               sourceUrl,
             };
           }),
-        sentences: (sentences ?? []).map((sentence) => ({
-          sentenceIndex: sentence.sentence_index,
-          userText: sentence.user_text,
-          answerText: sentence.answer_text,
-          score: sentence.score,
-        })),
+        sentences:
+          session.total_score === null
+            ? []
+            : (sentences ?? []).map((sentence) => ({
+                sentenceIndex: sentence.sentence_index,
+                userText: sentence.user_text,
+                answerText: sentence.answer_text,
+                score: sentence.score,
+              })),
       },
     });
   } catch (error) {
@@ -238,7 +241,15 @@ export async function PATCH(
     const shouldComplete =
       parsedBody.data.status === 'completed' && session.status !== 'completed';
 
-    if (shouldComplete && session.total_score === null) {
+    const shouldInvalidateScore =
+      parsedBody.data.userInput !== undefined &&
+      parsedBody.data.userInput !== session.user_input &&
+      session.status !== 'completed';
+
+    if (
+      shouldComplete &&
+      (session.total_score === null || shouldInvalidateScore)
+    ) {
       throw new AppError(
         ERROR_CODES.VALIDATION_ERROR,
         'Score is required before completing session',
@@ -252,6 +263,7 @@ export async function PATCH(
       user_input?: string | null;
       difficulty?: 'easy' | 'med' | 'hard';
       keyword?: string | null;
+      total_score?: null;
       status?: 'completed';
       updated_at: string;
     } = {
@@ -260,6 +272,10 @@ export async function PATCH(
 
     if (parsedBody.data.userInput !== undefined) {
       updatePayload.user_input = parsedBody.data.userInput;
+    }
+
+    if (shouldInvalidateScore) {
+      updatePayload.total_score = null;
     }
 
     if (parsedBody.data.difficulty !== undefined) {
@@ -299,6 +315,21 @@ export async function PATCH(
         'Failed to update session',
         500,
       );
+    }
+
+    if (shouldInvalidateScore) {
+      const { error: deleteSentenceError } = await supabase
+        .from('sentences')
+        .delete()
+        .eq('session_id', session.id);
+
+      if (deleteSentenceError) {
+        throw new AppError(
+          ERROR_CODES.INTERNAL_ERROR,
+          'Failed to reset previous score sentences',
+          500,
+        );
+      }
     }
 
     if (shouldComplete) {

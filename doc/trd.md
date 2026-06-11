@@ -446,7 +446,7 @@ Dictation 세션 수정
 }
 ```
 
-- `userInput`: 자동 저장 (debounce 3초, 실패 시 3초 간격 최대 3회 조용히 재시도)
+- `userInput`: 자동 저장 (debounce 3초, 실패 시 3초 간격 최대 3회 조용히 재시도). 값이 변경되면 기존 점수/문장별 채점 결과 무효화
 - `difficulty`: 난이도 변경 (완료 상태에서도 수정 가능)
 - `keyword`: nullable 키워드 수정 (완료 상태에서도 수정 가능)
 - `status`: `completed`만 허용. `totalScore`가 있어야 완료 가능하며 완료 시 day record 집계 반영
@@ -508,6 +508,7 @@ Dictation 세션 수정
 | file | File | 정답 PDF 파일 (최대 10MB) |
 
 - **PDF는 뷰어 전용**: 텍스트 자동 추출/채점 없음. 채점하려면 Direct Input으로 정답을 별도 입력해야 함
+- Direct Input 정답이 변경되면 기존 점수/문장별 채점 결과 무효화
 - 완료 세션(`status=completed`)은 정답 재업로드 불가 (`VALIDATION_ERROR`, 400)
 
 **Response (200):**
