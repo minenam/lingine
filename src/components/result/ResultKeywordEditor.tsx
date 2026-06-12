@@ -111,6 +111,7 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
   const [difficulty, setDifficulty] = useState<'easy' | 'med' | 'hard'>('med');
   const [keyword, setKeyword] = useState('');
   const [answerKeyInput, setAnswerKeyInput] = useState('');
+  const [lastScoredAnswerKey, setLastScoredAnswerKey] = useState('');
   const [answerPdfPath, setAnswerPdfPath] = useState<string | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [totalScore, setTotalScore] = useState<number | null>(null);
@@ -135,6 +136,10 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
     [totalScore],
   );
   const isCompletedLocked = status === 'completed';
+  const isAnswerModifiedAfterScore =
+    !isCompletedLocked &&
+    totalScore !== null &&
+    answerKeyInput !== lastScoredAnswerKey;
 
   const pdfViewerUrl = useMemo(() => {
     if (!answerPdfPath) {
@@ -170,6 +175,11 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
         setDifficulty(data.session.difficulty);
         setKeyword(data.session.keyword ?? '');
         setAnswerKeyInput(data.session.answerKey ?? '');
+        setLastScoredAnswerKey(
+          data.session.totalScore === null
+            ? ''
+            : (data.session.answerKey ?? ''),
+        );
         setAnswerPdfPath(data.session.answerPdfPath);
         setTotalScore(data.session.totalScore);
         setStatus(data.session.status);
@@ -339,6 +349,7 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
       }
 
       await refreshScoreResult();
+      setLastScoredAnswerKey(answerKeyInput);
       setSuccessMessage(
         '채점 결과를 확인했습니다. 완료하려면 Complete & Save를 누르세요.',
       );
@@ -352,7 +363,11 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
   };
 
   const completeAndSave = async () => {
-    if (totalScore === null || isCompletedLocked) {
+    if (
+      totalScore === null ||
+      isCompletedLocked ||
+      isAnswerModifiedAfterScore
+    ) {
       return;
     }
 
@@ -653,7 +668,9 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
         onClick={() => {
           void completeAndSave();
         }}
-        disabled={totalScore === null || isCompletedLocked}
+        disabled={
+          totalScore === null || isCompletedLocked || isAnswerModifiedAfterScore
+        }
         style={{
           marginTop: '14px',
           width: '100%',
@@ -663,15 +680,28 @@ export default function ResultKeywordEditor({ sessionId }: Props) {
           color: '#fff',
           padding: '12px 16px',
           cursor:
-            totalScore === null || isCompletedLocked
+            totalScore === null ||
+            isCompletedLocked ||
+            isAnswerModifiedAfterScore
               ? 'not-allowed'
               : 'pointer',
-          opacity: totalScore === null || isCompletedLocked ? 0.6 : 1,
+          opacity:
+            totalScore === null ||
+            isCompletedLocked ||
+            isAnswerModifiedAfterScore
+              ? 0.6
+              : 1,
           fontWeight: 700,
         }}
       >
         Complete & Save
       </button>
+
+      {isAnswerModifiedAfterScore ? (
+        <p style={{ color: '#8a5a00', marginTop: '8px' }}>
+          정답을 수정했습니다. 다시 Check Answer를 눌러주세요.
+        </p>
+      ) : null}
 
       {errorMessage ? <p style={{ color: '#cf2e2e' }}>{errorMessage}</p> : null}
       {successMessage ? (

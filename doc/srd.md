@@ -216,6 +216,7 @@
    - Response: `{ totalScore, sentenceScores[], feedback }`
 3. 채점 결과를 `dictation_sessions.total_score`에 저장하되 세션 상태는 `in_progress` 유지
 4. 문장별 결과를 `sentences` 테이블에 저장
+5. 완료 전 `user_input` 또는 Direct Input 정답이 변경되면 기존 채점 결과를 무효화
 
 **처리 — PDF Upload**:
 
